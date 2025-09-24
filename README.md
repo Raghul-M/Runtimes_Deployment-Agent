@@ -6,7 +6,15 @@
 [![Red Hat](https://img.shields.io/badge/Red%20Hat-OpenShift%20AI-red)](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai)
 
 <div align="center">
-  <img src="assets/banner.png" alt="Accelerator Compatibility Agent" width="600"/>
+<pre>
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║             Accelerator Compatibility Agent                   ║
+║                                                              ║
+║      Validating Model-Accelerator Compatibility in RHOAI     ║
+║                                                              ║
+╚═══════════════════════════════════════════════════════════════╝
+</pre>
 </div>
 
 An intelligent agent for validating and managing model-accelerator compatibility in Red Hat OpenShift AI deployments. The agent ensures optimal matching between AI/ML models and available hardware accelerators.
