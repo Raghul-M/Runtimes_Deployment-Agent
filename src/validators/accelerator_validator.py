@@ -105,7 +105,7 @@ def _get_cloud_provider():
         if result.returncode == 0:
             output = result.stdout.lower()
             
-            # Check for different cloud providers in the control plane URL
+            # Check for  cloud providers 
             if "amazonaws.com" in output or "aws" in output:
                 return "AWS"
             elif "azure.com" in output or "azure" in output:

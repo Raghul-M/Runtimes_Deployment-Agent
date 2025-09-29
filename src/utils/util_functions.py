@@ -31,11 +31,5 @@ def check_cluster_login():
         return "failed"
 
 
-def get_gpu_info():
-    """
-    Get the GPU information by running 'nvidia-smi' command.
-    
-    Returns:
-        str: GPU status
-    """
+
     t
