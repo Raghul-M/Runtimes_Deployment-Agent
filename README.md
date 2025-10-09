@@ -102,27 +102,6 @@ sequenceDiagram
     Supervisor->>User: Deliver final response
 ```
 
-## Agent Workflow
-
-```mermaid
-graph TD
-    A[model-car.yaml] --> B[Configuration Parser Agent]
-    B --> C[Compatibility Validator Agent]
-    C --> D[GPU Memory Analysis]
-    C --> E[Accelerator Type Check]
-    D --> F[Report Generator Agent]
-    E --> F
-    F --> G[Compatibility Matrix]
-    
-    S[Supervisor LLM] --> B
-    S --> C
-    S --> F
-    B --> S
-    C --> S
-    F --> S
-    S --> R[Final Response]
-```
-
 ## Core Functions
 
 - Parse and validate model-car configurations
@@ -139,41 +118,6 @@ The agent system is built using the Supervisor pattern where:
 - Agent nodes are implemented as tools that the supervisor can invoke
 - Communication happens through a shared state that passes between agents
 - The Command pattern routes execution to the appropriate agent based on the supervisor's decision
-
-### Command Routing Mechanism
-
-```mermaid
-classDiagram
-    class LLMAgent {
-        +llm: ChatGoogleGenerativeAI
-        +agent_nodes: Dict~str, Callable~
-        +tools: List~Any~
-        +register_agent_node(name, agent_func)
-        +register_tool(tool_func)
-        +route_command(agent_name, *args, **kwargs)
-        +execute_parallel(agent_calls)
-        +create_supervisor()
-        +run_supervisor(user_input)
-    }
-    
-    class Command {
-        +agent_name: str
-        +args: List
-        +kwargs: Dict
-        +execute(agent_nodes)
-    }
-    
-    class AgentNode {
-        +process(input_data)
-        +execute()
-    }
-    
-    LLMAgent --> Command : creates
-    LLMAgent --> AgentNode : registers
-    Command --> AgentNode : routes to
-```
-
-This architecture supports both sequential agent execution and parallel processing, making it suitable for complex workflows.
 
 ## Project Structure
 
