@@ -1,138 +1,90 @@
-# Accelerator Compatibility Agent
+# Runtimes Deployment Agent
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://github.com/astral-sh/uv)
-[![LangGraph](https://img.shields.io/badge/Inspired%20by-LangGraph-orange)](https://langchain-ai.github.io/langgraph/)
-[![Red Hat](https://img.shields.io/badge/Red%20Hat-OpenShift%20AI-red)](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai)
+[![LangChain](https://img.shields.io/badge/Built%20with-LangChain%201.x-orange)](https://python.langchain.com)
 
-<div align="center">
-<pre>
-╔═══════════════════════════════════════════════════════════════╗
-║                                                               ║
-║             Accelerator Compatibility Agent                   ║
-║                                                              ║
-║      Validating Model-Accelerator Compatibility in RHOAI     ║
-║                                                              ║
-╚═══════════════════════════════════════════════════════════════╝
-</pre>
-</div>
+Supervisor-driven orchestration for analysing model-car configurations and other accelerator related tasks. The project demonstrates LangChain’s refreshed supervisor pattern by coordinating focused “specialist” agents from a single entry point.
 
-An intelligent agent for validating and managing model-accelerator compatibility in Red Hat OpenShift AI deployments. The agent ensures optimal matching between AI/ML models and available hardware accelerators.
+## Features
 
-## Multi-Agent Architecture
+- **Supervisor pattern, LangChain 1.x style** – Uses `create_agent` for both the specialists and the supervisor, matching the latest LangChain documentation.
+- **Configuration specialist** – Loads model-car YAML files and extracts accelerator requirements as structured JSON.
+- **Math specialist** – Handles arithmetic requests (useful for quick sanity checks while keeping the multi-agent wiring easy to validate).
+- **Model size specialist** – Computes container image sizes for each model in a configuration.
+- **Planned specialists** – Accelerator and reporting agents are scaffolded in the architecture so additional tooling can snap in without changing the supervisor.
+- **Single entry script** – `execute_agent.py` runs sample requests and prints the supervisor’s final answer.
 
-This project implements a Supervisor-based multi-agent architecture inspired by [LangGraph's multi-agent approach](https://langchain-ai.github.io/langgraph/concepts/multi_agent/). The system consists of:
+## Requirements
 
-- **Supervisor Agent**: A central LLM-powered agent that coordinates workflows and makes high-level decisions
-- **Specialized Agent Nodes**: Task-specific agents focused on configuration parsing, compatibility validation, and reporting
-- **Command Routing**: Uses the Command pattern to route execution between agent nodes based on the supervisor's decisions
+- Python **3.12** (or newer)
+- A Google Gemini API key (`GEMINI_API_KEY`) for `langchain-google-genai`
+- Dependencies listed in `pyproject.toml`
 
-### Supervisor Architecture
+## Quick Start
+
+```bash
+# Install dependencies (editable install recommended while iterating)
+uv pip install -e .
+
+# Export your Gemini API key
+export GEMINI_API_KEY="your-key-here"
+
+# Run the sample workflow
+python execute_agent.py
+```
+
+You should see three sections in the output: mathematics, configuration requirements, and model image sizes for the sample `config-yaml/sample_modelcar_config.yaml`.
+
+## Architecture
 
 ```mermaid
 graph TD
-    subgraph "Supervisor LLM"
-        S[LLM Agent]
-        DP[Decision Process]
-        TR[Tool Router]
-    end
-    
-    subgraph "Agent Nodes"
-        CP[Config Parser]
-        VA[Validator]
-        RG[Report Generator]
-    end
-    
-    U[User Query] -->|Input| S
-    S -->|Analyze task| DP
-    DP -->|Select tool| TR
-    
-    TR -->|Parse config| CP
-    TR -->|Check compatibility| VA
-    TR -->|Generate report| RG
-    
-    CP -->|Return results| S
-    VA -->|Return results| S
-    RG -->|Return results| S
-    
-    S -->|Final response| R[Response]
-    
-    classDef supervisor fill:#ffcfcf,stroke:#ff0000
-    classDef agents fill:#d4f1f9,stroke:#0080ff
-    classDef flow fill:#fff,stroke:#333
-    
-    class S,DP,TR supervisor
-    class CP,VA,RG agents
-    class U,R flow
+    Supervisor["Supervisor<br/>coordinates specialists"]
+    Config["Config Agent<br/>load config<br/>extract requirements"]
+    Math["Math Agent<br/>add numbers<br/>multiply numbers"]
+    Size["Model Size Agent<br/>compute image size bytes"]
+    Accelerator["Accelerator Agent<br/>(planned)<br/>device sizing<br/>capability checks"]
+    Reporting["Reporting Agent<br/>(planned)<br/>format output<br/>generate summaries"]
+
+    Supervisor --> Config
+    Supervisor --> Math
+    Supervisor --> Size
+    Supervisor --> Accelerator
+    Supervisor --> Reporting
 ```
 
-This architecture provides several advantages:
-- **Modularity**: Separate agents make the system easier to develop and maintain
-- **Specialization**: Each agent focuses on a specific domain
-- **Control**: The supervisor explicitly controls agent communication
-- **Flexibility**: Supports both sequential and parallel agent execution
+- Each specialist is built with `create_agent`, exposing high-level tools (`analyze_model_config`, `solve_math`) that the supervisor can call.
+- The supervisor itself is another `create_agent` instance that chooses the correct specialist, optionally chaining multiple tools, and then returns a concise final response.
 
-### Execution Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Supervisor as Supervisor LLM
-    participant Config as Config Parser Agent
-    participant Validator as Validator Agent
-    participant Reporter as Report Generator Agent
-    
-    User->>Supervisor: Query about model compatibility
-    
-    Supervisor->>Supervisor: Analyze query
-    Supervisor->>Config: Request model configuration parsing
-    Config->>Config: Parse model-car.yaml
-    Config->>Supervisor: Return model specifications
-    
-    Supervisor->>Validator: Request compatibility check
-    Validator->>Validator: Validate GPU requirements
-    Validator->>Validator: Check accelerator types
-    Validator->>Supervisor: Return compatibility results
-    
-    Supervisor->>Reporter: Generate compatibility report
-    Reporter->>Reporter: Format validation results
-    Reporter->>Supervisor: Return formatted report
-    
-    Supervisor->>User: Deliver final response
-```
-
-## Core Functions
-
-- Parse and validate model-car configurations
-- Analyze accelerator requirements (CUDA, ROCm, vLLM-Spyre-x86 etc.)
-- Verify GPU capacity and memory compatibility
-- Generate compatibility reports
-- Skip unsupported model-accelerator combinations
-
-## Implementation Details
-
-The agent system is built using the Supervisor pattern where:
-
-- The LLM acts as the supervisor that decides which specialized agent to call
-- Agent nodes are implemented as tools that the supervisor can invoke
-- Communication happens through a shared state that passes between agents
-- The Command pattern routes execution to the appropriate agent based on the supervisor's decision
-
-## Project Structure
+## Repository Layout
 
 ```
 .
-├── src/
-│   ├── agent/
-│   │   └── llm_agent.py         # Supervisor LLM agent orchestrator
-│   ├── config/
-│   │   ├── model_config.py      # Configuration parser agent
-│   │   └── model-car.yaml       # Master model configuration
-│   ├── validators/
-│   │   └── accelerator_validator.py  # Compatibility validator agent
-│   └── reports/
-│       └── validation_report.py  # Report generator agent
-├── execute_agent.py             # Main entry point for running the agent
-└── tests/
-    └── test_llm_agent.py        # Test suite
+├── execute_agent.py                # Sample runner invoking the supervisor
+└── src/
+    ├── agent/
+    │   ├── llm_agent.py            # Supervisor wiring + registry
+    │   └── specialists/
+    │       ├── __init__.py              # Specialist descriptor
+    │       ├── config_specialist.py     # Builds config-focused agent + tool
+    │       ├── math_specialist.py       # Builds math-focused agent + tool
+    │       └── model_size_specialist.py # Computes container image sizes
+    └── config/
+        └── model_config.py         # YAML loading + requirement extraction helpers
+```
+
+## Customising
+
+- **Add new specialists**: drop a new builder in `src/agent/specialists/` and register it inside `LLMAgent._initialise_specialists`.
+- **Change the model**: pass a different `model` string when instantiating `LLMAgent`.
+- **Direct invocation**: the helper method `extract_final_text` returns the supervisor’s final response if you need it programmatically.
+
+## Testing
+
+A minimal smoke test is included via `python -m compileall src execute_agent.py`, ensuring the codebase remains syntax-valid. Add pytest-based tests under `tests/` as the project grows.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE).
