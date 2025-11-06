@@ -5,85 +5,99 @@
 [![uv](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://github.com/astral-sh/uv)
 [![LangChain](https://img.shields.io/badge/Built%20with-LangChain%201.x-orange)](https://python.langchain.com)
 
-Supervisor-driven orchestration for analysing model-car configurations and other accelerator related tasks. The project demonstrates LangChain’s refreshed supervisor pattern by coordinating focused “specialist” agents from a single entry point.
+Supervisor-driven orchestration for analysing model-car configurations. The tool follows LangChain’s [supervisor pattern](https://docs.langchain.com/oss/python/langchain/supervisor), combining a primary LLM with a configuration specialist that understands Red Hat “model-car” manifests and the container images they reference.
 
 ## Features
 
-- **Supervisor pattern, LangChain 1.x style** – Uses `create_agent` for both the specialists and the supervisor, matching the latest LangChain documentation.
-- **Configuration specialist** – Loads model-car YAML files and extracts accelerator requirements as structured JSON.
-- **Math specialist** – Handles arithmetic requests (useful for quick sanity checks while keeping the multi-agent wiring easy to validate).
-- **Model size specialist** – Computes container image sizes for each model in a configuration.
-- **Planned specialists** – Accelerator and reporting agents are scaffolded in the architecture so additional tooling can snap in without changing the supervisor.
-- **Single entry script** – `execute_agent.py` runs sample requests and prints the supervisor’s final answer.
+- **CLI-first workflow** – install the package and run `agent configuration --config …` to query any model-car file.
+- **LangChain supervisor** – the `LLMAgent` composes a specialist registry and exposes a single `run_supervisor` entry point.
+- **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, and other runtime hints as JSON.
+- **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model.
+- **Config bootstrap** – pass a bootstrap file at agent creation time so repeated prompts reuse cached requirements.
 
 ## Requirements
 
-- Python **3.12** (or newer)
+- Python **3.12+**
 - A Google Gemini API key (`GEMINI_API_KEY`) for `langchain-google-genai`
+- `skopeo` available on `PATH` (for container metadata; falls back gracefully if missing)
 - Dependencies listed in `pyproject.toml`
 
-## Quick Start
+## Installation
 
 ```bash
-# Install dependencies (editable install recommended while iterating)
+# Editable install while iterating
 uv pip install -e .
 
-# Export your Gemini API key
-export GEMINI_API_KEY="your-key-here"
-
-# Run the sample workflow
-python execute_agent.py
+# or with pip
+pip install -e .
 ```
 
-You should see three sections in the output: mathematics, configuration requirements, and model image sizes for the sample `config-yaml/sample_modelcar_config.yaml`.
+## CLI Usage
+
+```bash
+export GEMINI_API_KEY="your-key-here"
+
+# Inspect the bundled sample configuration
+agent configuration --config config-yaml/sample_modelcar_config.yaml
+```
+
+The command prints a **Configuration** section containing the parsed model requirements:
+
+```json
+{
+  "granite-3.1-8b-instruct": {
+    "model_name": "granite-3.1-8b-instruct",
+    "image": "oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5",
+    "gpu_count": 1,
+    "arguments": [
+      "--uvicorn-log-level=info",
+      "--max-model-len=2048",
+      "--trust-remote-code",
+      "--distributed-executor-backend=mp"
+    ],
+    "model_size_gb": 15.23,
+    "supported_arch": "amd64"
+  }
+}
+```
+
+- Use `--config` to point at any other YAML file.
+- `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.
+
+## Configuration Files
+
+- `model-car`: list (or single mapping) describing each model. Keys:
+  - `name`: identifier reported in CLI output.
+  - `image`: OCI reference (transport prefixes such as `oci://` are supported).
+  - `serving_arguments.gpu_count`: advertised GPU count; surfaced alongside metadata.
+  - `serving_arguments.args`: extra runtime flags (e.g., `--max-model-len`).
+- `default`: optional fallback block; currently used only as documentation.
 
 ## Architecture
 
-```mermaid
-graph TD
-    Supervisor["Supervisor<br/>coordinates specialists"]
-    Config["Config Agent<br/>load config<br/>extract requirements"]
-    Math["Math Agent<br/>add numbers<br/>multiply numbers"]
-    Size["Model Size Agent<br/>compute image size bytes"]
-    Accelerator["Accelerator Agent<br/>(planned)<br/>device sizing<br/>capability checks"]
-    Reporting["Reporting Agent<br/>(planned)<br/>format output<br/>generate summaries"]
-
-    Supervisor --> Config
-    Supervisor --> Math
-    Supervisor --> Size
-    Supervisor --> Accelerator
-    Supervisor --> Reporting
+```
+src/runtimes_dep_agent/
+├── agent/
+│   ├── llm_agent.py          # Supervisor wiring + specialist registry
+│   └── specialists/
+│       └── config_specialist.py
+├── config/
+│   └── model_config.py       # YAML + skopeo helpers
+├── execute_agent.py          # CLI entry point
+├── reports/
+│   └── validation_report.py  # Future reporting hooks
+└── validators/
+    └── accelerator_validator.py
 ```
 
-- Each specialist is built with `create_agent`, exposing high-level tools (`analyze_model_config`, `solve_math`) that the supervisor can call.
-- The supervisor itself is another `create_agent` instance that chooses the correct specialist, optionally chaining multiple tools, and then returns a concise final response.
+- Packages live under `src/runtimes_dep_agent`; installing the project exposes the console script `agent`.
+- The specialist tooling is deliberately modular—drop another specialist builder into `agent/specialists/` and register it inside `LLMAgent._initialise_specialists`.
 
-## Repository Layout
+## Development Notes
 
-```
-.
-├── execute_agent.py                # Sample runner invoking the supervisor
-└── src/
-    ├── agent/
-    │   ├── llm_agent.py            # Supervisor wiring + registry
-    │   └── specialists/
-    │       ├── __init__.py              # Specialist descriptor
-    │       ├── config_specialist.py     # Builds config-focused agent + tool
-    │       ├── math_specialist.py       # Builds math-focused agent + tool
-    │       └── model_size_specialist.py # Computes container image sizes
-    └── config/
-        └── model_config.py         # YAML loading + requirement extraction helpers
-```
-
-## Customising
-
-- **Add new specialists**: drop a new builder in `src/agent/specialists/` and register it inside `LLMAgent._initialise_specialists`.
-- **Change the model**: pass a different `model` string when instantiating `LLMAgent`.
-- **Direct invocation**: the helper method `extract_final_text` returns the supervisor’s final response if you need it programmatically.
-
-## Testing
-
-A minimal smoke test is included via `python -m compileall src execute_agent.py`, ensuring the codebase remains syntax-valid. Add pytest-based tests under `tests/` as the project grows.
+- Run `python -m compileall src` for a quick syntax check; add pytest suites under `tests/` as functionality grows.
+- Regenerate the CLI entry point after edits with `pip install -e .` (the `agent` command resolves to `runtimes_dep_agent.execute_agent:main`).
+- When `skopeo` cannot inspect an image (permissions, offline, etc.), the tool falls back to `0` size and `unknown` architecture while still printing other requirements.
 
 ## License
 
