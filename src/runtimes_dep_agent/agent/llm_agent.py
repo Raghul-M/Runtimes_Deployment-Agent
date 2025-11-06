@@ -7,20 +7,33 @@ from typing import Any, Dict, List
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from src.agent.specialists import SpecialistSpec
-from src.agent.specialists.config_specialist import build_config_specialist
-from src.agent.specialists.model_size_specialist import build_model_size_specialist
+from .specialists import SpecialistSpec
+from .specialists.config_specialist import build_config_specialist
+from ..config.model_config import load_llm_model_config, get_model_requirements
+
+
+
+
 
 
 class LLMAgent:
     """Builds a collection of specialists and exposes a supervisor entry point."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-pro") -> None:
+    def __init__(self, 
+                 api_key: str, 
+                 model: str = "gemini-2.5-pro",
+                 bootstrap_config: str | None = None
+                 ) -> None:
         self.llm = ChatGoogleGenerativeAI(
             model=model,
             api_key=api_key,
             temperature=0,
         )
+
+        self.precomputed_requirements = None
+        if bootstrap_config:
+            config = load_llm_model_config(bootstrap_config)
+            self.precomputed_requirements = get_model_requirements(config)
 
         self.specialists: List[SpecialistSpec] = self._initialise_specialists()
         self._supervisor = self._create_supervisor()
@@ -47,9 +60,15 @@ class LLMAgent:
     def _initialise_specialists(self) -> List[SpecialistSpec]:
         builders = [
             build_config_specialist,
-            build_model_size_specialist,
         ]
-        return [builder(self.llm, self._extract_final_text) for builder in builders]
+        return [
+            builder(
+                self.llm,
+                self._extract_final_text,
+                self.precomputed_requirements
+            )
+            for builder in builders
+        ]
 
     def _create_supervisor(self):
         tools = [spec.tool for spec in self.specialists]

@@ -6,9 +6,15 @@ Handles:
 3. Accelerator configuration management
 """
 
+import json
 import subprocess
 import yaml
 from typing import Dict
+import logging
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def load_llm_model_config(config_path: str) -> dict:
@@ -23,6 +29,21 @@ def load_llm_model_config(config_path: str) -> dict:
         config = yaml.safe_load(file)
     return config
 
+def _skopeo_inspect(image_name: str) -> dict | None:
+    image_ref = image_name.split("://", 1)[1] if "://" in image_name else image_name
+    image_ref = f"docker://{image_ref}"
+    try:
+        result = subprocess.run(
+            ["skopeo", "inspect", image_ref],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return json.loads(result.stdout)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        logger.error("skopeo inspect failed for %s: %s", image_name, exc)
+        return None
+
 def _estimate_model_size(image_name: str) -> int:
     """Estimate the model size based on the image name using podman inspect.
 
@@ -31,16 +52,28 @@ def _estimate_model_size(image_name: str) -> int:
     Returns:
         int: Size of the image in bytes.
     """
-    try:
-        result = subprocess.run(
-            ['podman', 'inspect', image_name, '--format', '{{.Size}}'],
-            capture_output=True, text=True, check=True
-        )
-        size_bytes = int(result.stdout.strip())
-        return size_bytes
-    except Exception:
-        return 0  # Default to 0 if inspection fails
+    metadata = _skopeo_inspect(image_name)
+
+    if not metadata:
+        return 0
+    layers = metadata.get("LayersData", [])
+    return sum(layer.get("Size", 0) for layer in layers if isinstance(layer, dict))/1024**3
     
+def _supported_arch(image_name: str) -> str:
+    """Estimate the supported architecture based on the image name using podman inspect.
+
+    Args:
+        image_name (str): The name of the container image.
+    Returns:
+        str: Supported architecture of the image.
+    """
+    metadata = _skopeo_inspect(image_name)
+
+    if not metadata:
+        return "unknown"
+    arch = metadata.get("Architecture") or metadata.get("Labels", {}).get("architecture")
+    return arch or "unknown"
+
 def estimate_model_size(image_name: str) -> int:
     """Public wrapper to estimate model size bytes for a container image."""
     return _estimate_model_size(image_name)
@@ -67,7 +100,8 @@ def get_model_requirements(config: Dict) -> Dict:
             'image': model_info.get('image', 'default-image'),
             'gpu_count': model_info.get('serving_arguments', {}).get('gpu_count', 0),
             'arguments': model_info.get('serving_arguments', {}).get('args', []),
-            'model_size_bytes': _estimate_model_size(model_info.get('image', 'default-image'))
+            'model_size_gb': _estimate_model_size(model_info.get('image', 'default-image')),
+            'supported_arch': _supported_arch(model_info.get('image', 'default-image'))
         }
 
     return requirements
