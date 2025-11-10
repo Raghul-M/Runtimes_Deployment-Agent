@@ -7,10 +7,12 @@ Handles:
 """
 
 import json
-import subprocess
-import yaml
-from typing import Dict
 import logging
+import math
+import subprocess
+from typing import Dict
+
+import yaml
 
 
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +59,12 @@ def _estimate_model_size(image_name: str) -> int:
     if not metadata:
         return 0
     layers = metadata.get("LayersData", [])
-    return sum(layer.get("Size", 0) for layer in layers if isinstance(layer, dict))/1024**3
+    image_size_bytes = sum(layer.get("Size", 0) for layer in layers if isinstance(layer, dict))
+    if not image_size_bytes:
+        return 0
+
+    size_gb = image_size_bytes / (1024 ** 3)
+    return math.ceil(size_gb * 100) / 100
     
 def _supported_arch(image_name: str) -> str:
     """Estimate the supported architecture based on the image name using podman inspect.
