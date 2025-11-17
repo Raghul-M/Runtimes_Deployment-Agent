@@ -9,6 +9,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .specialists import SpecialistSpec
 from .specialists.config_specialist import build_config_specialist
+from .specialists.accelerator_specialist import build_accelerator_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
 
 
@@ -60,6 +61,7 @@ class LLMAgent:
     def _initialise_specialists(self) -> List[SpecialistSpec]:
         builders = [
             build_config_specialist,
+            build_accelerator_specialist,
         ]
         return [
             builder(
@@ -75,8 +77,9 @@ class LLMAgent:
         prompt = (
             "You are an orchestration supervisor. Decide which specialist tool to call "
             "for each user request, execute it, and synthesise the response. "
-            "Use the configuration specialist for YAML/model questions,"
-            "image size information. Always return the tool output verbatim as the final "
+            "Use the configuration specialist for YAML/model questions and image size information. "
+            "Use the accelerator specialist for GPU availability, accelerator compatibility, "
+            "and cluster validation questions. Always return the tool output verbatim as the final "
             "assistant message; do not rewrite, summarise, or add commentary."
         )
         return create_agent(
