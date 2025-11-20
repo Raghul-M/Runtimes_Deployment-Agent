@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List
+import logging
+import subprocess
 
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .specialists import SpecialistSpec
 from .specialists.config_specialist import build_config_specialist
+from .specialists.qa_specialist import build_qa_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
+
+
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -22,8 +29,17 @@ class LLMAgent:
     def __init__(self, 
                  api_key: str, 
                  model: str = "gemini-2.5-pro",
-                 bootstrap_config: str | None = None
+                 bootstrap_config: str | None = None,
+                 bootstrap_clone_gh_repo: str = "https://github.com/opendatahub-io/opendatahub-tests/tree/main",
+                 supported_accelerator_type: str = "NVIDIA",
+                 vllm_runtime_image: str = "registry.redhat.io/rh-ai/llm-runtime-rhel9:vllm-0.5.3",
+                 modelcar_image_name: str = "quay.io/rh-ai/model-car-rhel9:vllm-0.5.3",
                  ) -> None:
+        
+        self.supported_accelerator_type = supported_accelerator_type
+        self.vllm_runtime_image = vllm_runtime_image
+        self.modelcar_image_name = modelcar_image_name
+    
         self.llm = ChatGoogleGenerativeAI(
             model=model,
             api_key=api_key,
@@ -34,6 +50,26 @@ class LLMAgent:
         if bootstrap_config:
             config = load_llm_model_config(bootstrap_config)
             self.precomputed_requirements = get_model_requirements(config)
+        if bootstrap_clone_gh_repo:
+            tarball_path = "/tmp/repo.tar.gz"
+            subprocess.run(
+                ["git", "clone", "--depth", "1", "--branch", "main", 
+                 bootstrap_clone_gh_repo, "/tmp/repo"],
+                check=True,
+            )
+            subprocess.run(
+                ["tar", "-czf", tarball_path, "-C", "/tmp/repo", "."],
+                check=True,
+            )
+            subprocess.run(
+                ["uv", "pip", "install", tarball_path],
+                check=True,
+            )
+            subprocess.run(
+                ["rm", "-rf", "/tmp/repo"],
+                check=True,
+            )
+            logger.info("Cloned GitHub repository to %s", tarball_path)
 
         self.specialists: List[SpecialistSpec] = self._initialise_specialists()
         self._supervisor = self._create_supervisor()
@@ -59,7 +95,17 @@ class LLMAgent:
     # ------------------------------------------------------------------ #
     def _initialise_specialists(self) -> List[SpecialistSpec]:
         builders = [
-            build_config_specialist,
+            build_config_specialist(
+                self.llm,
+                self._extract_final_text,
+                self.precomputed_requirements
+            ),
+            build_qa_specialist(
+                self.llm,
+                self.supported_accelerator_type,
+                self.vllm_runtime_image,
+                self.modelcar_image_name
+            )
         ]
         return [
             builder(
@@ -76,7 +122,8 @@ class LLMAgent:
             "You are an orchestration supervisor. Decide which specialist tool to call "
             "for each user request, execute it, and synthesise the response. "
             "Use the configuration specialist for YAML/model questions,"
-            "image size information. Always return the tool output verbatim as the final "
+            "image size information. Use the QA specialist for validation tests. "
+            "Always return the tool output verbatim as the final "
             "assistant message; do not rewrite, summarise, or add commentary."
         )
         return create_agent(

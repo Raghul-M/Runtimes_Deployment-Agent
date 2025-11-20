@@ -10,7 +10,6 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
 
 from . import SpecialistSpec
-from ...config.model_config import get_model_requirements, load_llm_model_config
 
 
 

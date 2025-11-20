@@ -24,6 +24,21 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_CONFIG_PATH,
         help="Path to the model-car YAML configuration file.",
     )
+    parser.add_argument(
+        "--supported-accelerator-type",
+        default="NVIDIA",
+        help="Type of accelerator supported (e.g., NVIDIA, AMD).",
+    )
+    parser.add_argument(
+        "--vllm-runtime-image",
+        default="registry.redhat.io/rh-ai/llm-runtime-rhel9:vllm-0.5.3",
+        help="Container image for the vLLM runtime.",
+    )
+    parser.add_argument(
+        "--modelcar-image-name",
+        default="quay.io/rh-ai/model-car-rhel9:vllm-0.5.3",
+        help="Container image name for the model-car.",
+    )
     return parser.parse_args()
 
 

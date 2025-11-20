@@ -38,7 +38,7 @@ pip install -e .
 export GEMINI_API_KEY="your-key-here"
 
 # Inspect the bundled sample configuration
-agent configuration --config config-yaml/sample_modelcar_config.yaml
+agent --config config-yaml/sample_modelcar_config.yaml
 ```
 
 The command prints a **Configuration** section containing the parsed model requirements:
