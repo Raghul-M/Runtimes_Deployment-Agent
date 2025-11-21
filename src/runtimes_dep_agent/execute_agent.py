@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
+import sys
+from pathlib import Path
 from typing import Callable, Iterable
 import argparse
 from langgraph.errors import GraphRecursionError
@@ -13,6 +14,41 @@ from runtimes_dep_agent.agent.llm_agent import LLMAgent
 
 
 DEFAULT_CONFIG_PATH = "config-yaml/sample_modelcar_config.yaml"
+
+SCENARIO_REQUESTS: dict[str, list[tuple[str, str]]] = {
+    "default": [
+        (
+            "Configuration",
+            "Load the provided model-car configuration and summarise the model requirements as structured text.",
+        ),
+        (
+            "Accelerator Compatibility",
+            "Using the configuration context you just produced as guidance, validate accelerator availability and compatibility on the cluster. "
+            "Call the accelerator specialist to confirm login status, GPU provider, and any gaps versus the model requirements.",
+        ),
+        (
+            "Deployment Decision",
+            "Using the cached configuration requirements and the GPU info captured on disk, call the decision specialist to compare VRAM needs "
+            "against per-GPU memory and provide a clear GO/NO-GO recommendation.",
+        ),
+    ],
+    "configuration": [
+        (
+            "Configuration",
+            "Report the model-car requirements for the given configuration file.",
+        ),
+    ],
+    "accelerator": [
+        (
+            "Accelerator Authentication",
+            "Confirm whether I am authenticated to the OpenShift cluster.",
+        ),
+        (
+            "Accelerator Validation",
+            "Check cluster GPU availability, provider details, and accelerator compatibility recommendations.",
+        ),
+    ],
+}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -25,19 +61,10 @@ def _parse_args() -> argparse.Namespace:
         help="Path to the model-car YAML configuration file.",
     )
     parser.add_argument(
-        "--supported-accelerator-type",
-        default="NVIDIA",
-        help="Type of accelerator supported (e.g., NVIDIA, AMD).",
-    )
-    parser.add_argument(
-        "--vllm-runtime-image",
-        default="registry.redhat.io/rh-ai/llm-runtime-rhel9:vllm-0.5.3",
-        help="Container image for the vLLM runtime.",
-    )
-    parser.add_argument(
-        "--modelcar-image-name",
-        default="quay.io/rh-ai/model-car-rhel9:vllm-0.5.3",
-        help="Container image name for the model-car.",
+        "--handler",
+        default="default",
+        choices=sorted(SCENARIO_REQUESTS.keys()),
+        help="Select which scenario handler to execute.",
     )
     return parser.parse_args()
 
@@ -63,25 +90,26 @@ def run_requests(
 
 def main() -> None:
     args = _parse_args()
-
+    
+    # Check API key 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable must be set")
+    
+    # Initialize agent and proceed
     agent = LLMAgent(
         api_key=api_key,
         bootstrap_config=args.config
     )
     handler = getattr(args, "handler", "default")
-    if handler == "default":
-        scenario_requests = [
-            (
-                "Configuration",
-                "Report the model-car requirements for the given configuration file "
-            )
-        ]
-        run_requests(agent, scenario_requests)
-    else:
-        raise ValueError(f"Unknown handler specified: {handler}")
+    scenario_requests = SCENARIO_REQUESTS.get(handler)
+    if scenario_requests is None:
+        available = ", ".join(sorted(SCENARIO_REQUESTS))
+        raise ValueError(
+            f"Unknown handler specified: {handler}. Available handlers: {available}"
+        )
+
+    run_requests(agent, scenario_requests)
 
 if __name__ == "__main__":
     main()

@@ -12,6 +12,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from .specialists import SpecialistSpec
 from .specialists.config_specialist import build_config_specialist
 from .specialists.qa_specialist import build_qa_specialist
+from .specialists.accelerator_specialist import build_accelerator_specialist
+from .specialists.decision_specialist import build_decision_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
 
 
@@ -95,17 +97,9 @@ class LLMAgent:
     # ------------------------------------------------------------------ #
     def _initialise_specialists(self) -> List[SpecialistSpec]:
         builders = [
-            build_config_specialist(
-                self.llm,
-                self._extract_final_text,
-                self.precomputed_requirements
-            ),
-            build_qa_specialist(
-                self.llm,
-                self.supported_accelerator_type,
-                self.vllm_runtime_image,
-                self.modelcar_image_name
-            )
+            build_config_specialist,
+            build_accelerator_specialist,
+            build_decision_specialist,
         ]
         return [
             builder(
@@ -119,12 +113,14 @@ class LLMAgent:
     def _create_supervisor(self):
         tools = [spec.tool for spec in self.specialists]
         prompt = (
-            "You are an orchestration supervisor. Decide which specialist tool to call "
-            "for each user request, execute it, and synthesise the response. "
-            "Use the configuration specialist for YAML/model questions,"
-            "image size information. Use the QA specialist for validation tests. "
-            "Always return the tool output verbatim as the final "
-            "assistant message; do not rewrite, summarise, or add commentary."
+            "You are an orchestration supervisor. Decide which specialist tool to call for each user request, "
+            "execute it, and synthesise the response. Use the configuration specialist for YAML/model questions "
+            "and VRAM estimates. Use the accelerator specialist for GPU availability, compatibility, and cluster "
+            "validation. Use the decision specialist to compare the configuration requirements against the GPU "
+            "details and issue the final deployment verdict. After gathering the necessary information, explicitly "
+            "compare each model's VRAM requirement to the per-GPU memory exposed by the accelerator specialist "
+            "(e.g., `model VRAM 18 GB vs GPU 80 GB`), state how many GPUs are needed, and deliver a clear GO/NO-GO "
+            "recommendation referencing the tool outputs."
         )
         return create_agent(
             self.llm,
@@ -136,6 +132,10 @@ class LLMAgent:
     def _extract_final_text(result: Dict[str, Any]) -> str:
         messages: List[Any] = result.get("messages", [])
         if not messages:
+            for key in ("output", "output_text", "output_str"):
+                text = result.get(key)
+                if isinstance(text, str) and text.strip():
+                    return text.strip()
             return ""
 
         final_message = messages[-1]
