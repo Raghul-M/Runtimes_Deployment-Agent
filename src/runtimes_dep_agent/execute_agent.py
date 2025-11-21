@@ -5,11 +5,19 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
+from pathlib import Path
 from typing import Callable, Iterable
 import argparse
 from langgraph.errors import GraphRecursionError
 
 from runtimes_dep_agent.agent.llm_agent import LLMAgent
+
+# Add src to path for utils
+src_path = Path(__file__).parent.parent.parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+from utils import check_cluster_login
 
 
 DEFAULT_CONFIG_PATH = "config-yaml/sample_modelcar_config.yaml"
@@ -49,9 +57,23 @@ def run_requests(
 def main() -> None:
     args = _parse_args()
 
+    # Check cluster login 
+    print("Checking cluster authentication...")
+    login_status = check_cluster_login()
+    
+    if "failed" in login_status.lower() or "login" in login_status.lower():
+        print(f" Error: {login_status}")
+        print("Please login to your cluster first using: oc login")
+        sys.exit(1)
+    
+    print(f" Successfully Logged : {login_status}")
+    
+    # Check API key 
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable must be set")
+    
+    # Initialize agent and proceed
     agent = LLMAgent(
         api_key=api_key,
         bootstrap_config=args.config
