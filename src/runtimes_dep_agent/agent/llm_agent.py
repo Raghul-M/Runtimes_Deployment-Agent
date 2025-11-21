@@ -92,6 +92,10 @@ class LLMAgent:
     def _extract_final_text(result: Dict[str, Any]) -> str:
         messages: List[Any] = result.get("messages", [])
         if not messages:
+            for key in ("output", "output_text", "output_str"):
+                text = result.get(key)
+                if isinstance(text, str) and text.strip():
+                    return text.strip()
             return ""
 
         final_message = messages[-1]

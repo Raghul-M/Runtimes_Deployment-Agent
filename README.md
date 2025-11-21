@@ -11,8 +11,9 @@ Supervisor-driven orchestration for analysing model-car configurations. The tool
 
 - **CLI-first workflow** – install the package and run `agent configuration --config …` to query any model-car file.
 - **LangChain supervisor** – the `LLMAgent` composes a specialist registry and exposes a single `run_supervisor` entry point.
-- **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, and other runtime hints as JSON.
-- **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model.
+- **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, parameter/quantization hints from model names, and estimates per-model VRAM.
+- **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model; reports image size separately from VRAM.
+- **Checklist-style responses** – specialists start with a short checklist of the steps they are taking before returning the report/results.
 - **Config bootstrap** – pass a bootstrap file at agent creation time so repeated prompts reuse cached requirements.
 
 ## Requirements
@@ -41,7 +42,7 @@ export GEMINI_API_KEY="your-key-here"
 agent configuration --config config-yaml/sample_modelcar_config.yaml
 ```
 
-The command prints a **Configuration** section containing the parsed model requirements:
+The command prints a **Configuration** section containing the parsed model requirements, including container size, estimated VRAM (based on parameters/quantization parsed from the model name), and supported architecture. Example snippet:
 
 ```json
 {
@@ -56,10 +57,32 @@ The command prints a **Configuration** section containing the parsed model requi
       "--distributed-executor-backend=mp"
     ],
     "model_size_gb": 15.23,
+    "model_p_billion": 8.0,
+    "quantization_bits": 16,
+    "required_vram_gb": 18,
     "supported_arch": "amd64"
   }
 }
 ```
+
+### Sample run (with checklists)
+
+```
+agent --config config-yaml/sample_modelcar_config.yaml
+```
+
+Produces configuration and accelerator sections with checklists and VRAM estimates, for example:
+
+- Configuration
+  - [x] Load cached requirements
+  - [x] Estimate VRAM
+  - [x] Compose report
+  - Model: granite-3.1-8b-instruct → 15.24 GB image, 8B params, not quantized, ~18 GB VRAM, arch amd64
+- Accelerator Compatibility
+  - [x] Check cluster authentication
+  - [x] Query GPU status
+  - [x] Fetch detailed GPU info (written to `gpu_info/gpu_info.txt`)
+  - [x] Validate accelerator compatibility (reports provider, status, and CUDA/ROCm notes)
 
 - Use `--config` to point at any other YAML file.
 - `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.

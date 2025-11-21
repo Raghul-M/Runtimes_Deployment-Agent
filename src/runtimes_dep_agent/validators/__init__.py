@@ -13,4 +13,3 @@ __all__ = [
     "get_nvidia_gpu_details",
     "get_amd_gpu_details",
 ]
-
