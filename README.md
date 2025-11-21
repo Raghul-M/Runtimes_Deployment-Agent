@@ -10,9 +10,12 @@ Supervisor-driven orchestration for analysing model-car configurations. The tool
 ## Features
 
 - **CLI-first workflow** – install the package and run `agent configuration --config …` to query any model-car file.
-- **LangChain supervisor** – the `LLMAgent` composes a specialist registry and exposes a single `run_supervisor` entry point.
-- **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, and other runtime hints as JSON.
-- **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model.
+- **LangChain supervisor** – the `LLMAgent` composes a specialist registry (configuration + accelerator + deployment decision) and exposes a single `run_supervisor` entry point.
+- **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, parameter/quantization hints from model names, and estimates per-model VRAM.
+- **Accelerator specialist** – checks OpenShift authentication, enumerates GPUs, and writes a detailed `gpu_info/gpu_info.txt` report (provider, instance type, per-GPU VRAM).
+- **Decision specialist** – reads the cached requirements plus `gpu_info/gpu_info.txt`, compares each model’s VRAM requirement to the per-GPU memory, and issues a GO/NO-GO verdict.
+- **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model; reports image size separately from VRAM.
+- **Checklist-style responses** – specialists start with a short checklist of the steps they are taking before returning the report/results.
 - **Config bootstrap** – pass a bootstrap file at agent creation time so repeated prompts reuse cached requirements.
 
 ## Requirements
@@ -41,7 +44,7 @@ export GEMINI_API_KEY="your-key-here"
 agent configuration --config config-yaml/sample_modelcar_config.yaml
 ```
 
-The command prints a **Configuration** section containing the parsed model requirements:
+The command prints a **Configuration** section containing the parsed model requirements, including container size, estimated VRAM (based on parameters/quantization parsed from the model name), and supported architecture. Example snippet:
 
 ```json
 {
@@ -56,10 +59,46 @@ The command prints a **Configuration** section containing the parsed model requi
       "--distributed-executor-backend=mp"
     ],
     "model_size_gb": 15.23,
+    "model_p_billion": 8.0,
+    "quantization_bits": 16,
+    "required_vram_gb": 18,
     "supported_arch": "amd64"
   }
 }
 ```
+
+### Sample run (with checklists and decision step)
+
+```
+agent --config config-yaml/sample_modelcar_config.yaml
+```
+
+Produces three sections:
+
+- Configuration
+  - [x] Load cached requirements
+  - [x] Estimate VRAM
+  - [x] Compose report
+  - Model: granite-3.1-8b-instruct → 15.24 GB image, 8B params, not quantized, ~18 GB VRAM, arch amd64
+- Accelerator Compatibility
+  - [x] Load cached requirements
+  - [x] Check cluster authentication
+  - [x] Query GPU status
+  - [x] Fetch detailed GPU info (written to `gpu_info/gpu_info.txt`)
+  - [x] Validate accelerator compatibility (reports provider, status, and CUDA/ROCm notes)
+- Deployment Decision
+  - [x] Load cached requirements
+  - [x] Read GPU info file
+  - [x] Compare VRAM needs vs per-GPU memory (e.g., `model VRAM 18 GB vs GPU 80 GB`)
+  - [x] Issue GO/NO-GO recommendation with justification
+
+A typical end-to-end response therefore concludes with something like:
+
+> **Deployment Decision**  
+> - `granite-3.1-8b-instruct` needs 18 GB VRAM  
+> - GPU inventory reports NVIDIA H100 (80 GB each), 8 GPUs total  
+> - Comparison: `model VRAM 18 GB vs GPU 80 GB` → fits on 1 GPU  
+> - **GO**: resources are sufficient for the requested model.
 
 - Use `--config` to point at any other YAML file.
 - `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.
@@ -78,14 +117,16 @@ The command prints a **Configuration** section containing the parsed model requi
 ```
 src/runtimes_dep_agent/
 ├── agent/
-│   ├── llm_agent.py          # Supervisor wiring + specialist registry
+│   ├── llm_agent.py              # Supervisor wiring + specialist registry
 │   └── specialists/
-│       └── config_specialist.py
+│       ├── config_specialist.py
+│       ├── accelerator_specialist.py
+│       └── decision_specialist.py
 ├── config/
-│   └── model_config.py       # YAML + skopeo helpers
-├── execute_agent.py          # CLI entry point
+│   └── model_config.py           # YAML + skopeo helpers
+├── execute_agent.py              # CLI entry point
 ├── reports/
-│   └── validation_report.py  # Future reporting hooks
+│   └── validation_report.py      # Future reporting hooks
 └── validators/
     └── accelerator_validator.py
 ```
