@@ -10,6 +10,7 @@ Provides validation for:
 import os
 import subprocess
 import re
+import json
 
 
 def check_gpu_availability():
