@@ -1,6 +1,7 @@
 """ QA Specialist for running """
 
 from __future__ import annotations
+import os
 import tempfile
 from typing import Callable
 from anyio import Path
@@ -22,25 +23,35 @@ def build_qa_specialist(
     """Return the QA specialist agent and the supervisor-facing tool."""
     
     @tool
-    def run_odh_tests() -> str:
-        """Run the ODH model validation test suite"""
-        image = f"quay.io/opendatahub/opendatahub-tests:latest"
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            tmp_dir = Path(tmpdirname)
-        staged_kubeconfig = tmp_dir / "kubeconfig"
-        results_dir = tmp_dir / "results"
+    def run_odh_tests(image_tag: str = "latest") -> str:
+        """Run the ODH model validation test suite using a fixed kubeconfig mount."""
+
+        image = f"quay.io/opendatahub/opendatahub-tests:{image_tag}"
+
+        user_kubeconfig = os.path.expanduser("~/.kube/config")
+        results_dir = "/tmp/opendatahub-tests-results"
+
+        # Ensure results directory exists
+        os.makedirs(results_dir, exist_ok=True)
+
         try:
             result = subprocess.run(
-                ["podman", "run", "--rm", "-e", "KUBECONFIG=/home/.kube/config", "-v", 
-                 f"{staged_kubeconfig}:/home/.kube/config:Z", "-v", f"{results_dir}:/results:Z", image],
+                [
+                    "podman", "run", "--rm",
+                    "-e", "KUBECONFIG=/home/odh/.kube/config",
+                    "-v", f"{user_kubeconfig}:/home/odh/.kube/config:Z",
+                    "-v", f"{results_dir}:/home/odh/opendatahub-tests/results:Z",
+                    image,
+                ],
                 capture_output=True,
                 text=True,
                 check=True,
             )
             return result.stdout
+
         except subprocess.CalledProcessError as e:
             logger.error(f"Error running ODH tests: {e.stderr}")
-            return f"Error running ODH tests: {e.stderr}"
+            return f"QA_ERROR: {e.stderr}"
 
     prompt = (
         "You are a QA Specialist responsible for validating machine learning model deployments "
