@@ -10,17 +10,10 @@ from langchain_core.tools import tool
 
 from . import SpecialistSpec
 from ...validators.accelerator_validator import (
+    check_cluster_login,
     check_gpu_availability,
     get_gpu_info,
 )
-import sys
-import os
-# Add src directory to path to import utils
-# Path: src/runtimes_dep_agent/agent/specialists/ -> src/
-src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-from utils import check_cluster_login
 
 
 def build_accelerator_specialist(
@@ -122,6 +115,9 @@ def build_accelerator_specialist(
 
     prompt = (
         "You are an accelerator and GPU compatibility specialist. "
+        "Begin with a short checklist using [ ] / [x] to show the steps you will take "
+        "(e.g., check cluster authentication, query GPU status, fetch detailed info). "
+        "Mark steps complete as you invoke the tools. "
         "Use the provided tools to check GPU availability, validate accelerator compatibility, "
         "and provide detailed GPU information from OpenShift clusters. "
         "Always check cluster authentication before performing GPU operations. "
@@ -155,4 +151,3 @@ def build_accelerator_specialist(
 
 
 __all__ = ["build_accelerator_specialist"]
-
