@@ -137,12 +137,6 @@ src/runtimes_dep_agent/
 - Packages live under `src/runtimes_dep_agent`; installing the project exposes the console script `agent`.
 - The specialist tooling is deliberately modular—drop another specialist builder into `agent/specialists/` and register it inside `LLMAgent._initialise_specialists`.
 
-### LangGraph-style Supervisor
-
-![Supervisor Diagram](supervisor-diagram.png)
-
-The orchestration follows LangGraph’s multi-agent supervisor workflow, where a single controller LLM routes user requests to the appropriate “tool” (configuration specialist, accelerator specialist, and deployment decision specialist). Each specialist is a self-contained LangChain agent with its own tools, allowing the supervisor to iteratively refine the answer: first parsing the config, then validating cluster GPUs, and finally delivering a GO/NO-GO decision. If you're new to the pattern, see the [LangGraph multi-agent guide](https://blog.langchain.com/langgraph-multi-agent-workflows/) for a visual overview—this repo’s PNG was adapted from that concept.
-
 ## Development Notes
 
 - Run `python -m compileall src` for a quick syntax check; add pytest suites under `tests/` as functionality grows.
