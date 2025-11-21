@@ -65,6 +65,25 @@ The command prints a **Configuration** section containing the parsed model requi
 }
 ```
 
+### Sample run (with checklists)
+
+```
+agent --config config-yaml/sample_modelcar_config.yaml
+```
+
+Produces configuration and accelerator sections with checklists and VRAM estimates, for example:
+
+- Configuration
+  - [x] Load cached requirements
+  - [x] Estimate VRAM
+  - [x] Compose report
+  - Model: granite-3.1-8b-instruct → 15.24 GB image, 8B params, not quantized, ~18 GB VRAM, arch amd64
+- Accelerator Compatibility
+  - [x] Check cluster authentication
+  - [x] Query GPU status
+  - [x] Fetch detailed GPU info (written to `gpu_info/gpu_info.txt`)
+  - [x] Validate accelerator compatibility (reports provider, status, and CUDA/ROCm notes)
+
 - Use `--config` to point at any other YAML file.
 - `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.
 
