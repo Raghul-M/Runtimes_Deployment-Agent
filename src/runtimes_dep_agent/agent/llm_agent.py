@@ -2,19 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, Dict, List
 
 from langchain.agents import create_agent
-from langchain_core.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .specialists import SpecialistSpec
 from .specialists.config_specialist import build_config_specialist
 from .specialists.accelerator_specialist import build_accelerator_specialist
+from .specialists.decision_specialist import build_decision_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
-
-WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 
 
 
@@ -66,6 +63,7 @@ class LLMAgent:
         builders = [
             build_config_specialist,
             build_accelerator_specialist,
+            build_decision_specialist,
         ]
         return [
             builder(
@@ -77,34 +75,16 @@ class LLMAgent:
         ]
 
     def _create_supervisor(self):
-        @tool
-        def read_workspace_file(file_path: str) -> str:
-            """Read a text file within the project workspace (e.g., gpu_info/gpu_info.txt)."""
-            try:
-                target = Path(file_path)
-                if not target.is_absolute():
-                    target = WORKSPACE_ROOT / target
-                target = target.resolve()
-                if WORKSPACE_ROOT not in target.parents and target != WORKSPACE_ROOT:
-                    return "Error: Path outside workspace is not allowed."
-                with open(target, "r", encoding="utf-8") as handle:
-                    return handle.read()
-            except FileNotFoundError:
-                return f"Error: File not found: {file_path}"
-            except UnicodeDecodeError:
-                return f"Error: File is not readable as text: {file_path}"
-            except Exception as exc:
-                return f"Error reading file: {exc}"
-
-        tools = [spec.tool for spec in self.specialists] + [read_workspace_file]
+        tools = [spec.tool for spec in self.specialists]
         prompt = (
             "You are an orchestration supervisor. Decide which specialist tool to call for each user request, "
             "execute it, and synthesise the response. Use the configuration specialist for YAML/model questions "
             "and VRAM estimates. Use the accelerator specialist for GPU availability, compatibility, and cluster "
-            "validation. Use read_workspace_file whenever you need to inspect generated artifacts such as "
-            "`gpu_info/gpu_info.txt`. After gathering the necessary information, decide whether the model can be "
-            "deployed on the available hardware and provide a concise justification, referencing the tool outputs. You "
-            "will give a strong GO/NO-GO recommendation based on the model requirements and accelerator capabilities."
+            "validation. Use the decision specialist to compare the configuration requirements against the GPU "
+            "details and issue the final deployment verdict. After gathering the necessary information, explicitly "
+            "compare each model's VRAM requirement to the per-GPU memory exposed by the accelerator specialist "
+            "(e.g., `model VRAM 18 GB vs GPU 80 GB`), state how many GPUs are needed, and deliver a clear GO/NO-GO "
+            "recommendation referencing the tool outputs."
         )
         return create_agent(
             self.llm,

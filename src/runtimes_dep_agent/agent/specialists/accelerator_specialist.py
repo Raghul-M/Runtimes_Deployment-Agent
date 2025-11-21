@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Callable
 
 from langchain.agents import create_agent
@@ -24,12 +25,15 @@ def build_accelerator_specialist(
     """Return the accelerator specialist agent and the supervisor-facing tool."""
 
     @tool
+    def describe_preloaded_requirements() -> str:
+        """Return the preloaded model requirements as JSON."""
+        if not precomputed_requirements:
+            return "No preloaded requirements available."
+        return json.dumps(precomputed_requirements, indent=2)
+
+    @tool
     def check_cluster_authentication() -> str:
-        """Check if the user is logged into the OpenShift cluster.
-        
-        Returns:
-            str: Status message indicating cluster login status.
-        """
+        """Check if the user is logged into the OpenShift cluster."""
         return check_cluster_login()
 
     @tool
@@ -116,16 +120,19 @@ def build_accelerator_specialist(
     prompt = (
         "You are an accelerator and GPU compatibility specialist. "
         "Begin with a short checklist using [ ] / [x] to show the steps you will take "
-        "(e.g., check cluster authentication, query GPU status, fetch detailed info). "
+        "(e.g., load cached requirements, check cluster authentication, query GPU status, fetch detailed info). "
         "Mark steps complete as you invoke the tools. "
+        "Always call describe_preloaded_requirements to understand the model needs before referencing them. "
         "Use the provided tools to check GPU availability, validate accelerator compatibility, "
-        "and provide detailed GPU information from OpenShift clusters. "
-        "Always check cluster authentication before performing GPU operations. "
+        "and provide detailed GPU information from OpenShift clusters and the GPU size. "
+        "Never ask the user for model requirements; rely on the cached JSON. "
+        "Provide clear, structured responses with validation results and recommendations."
     )
 
     agent = create_agent(
         llm,
         tools=[
+            describe_preloaded_requirements,
             check_cluster_authentication,
             check_gpu_status,
             get_detailed_gpu_information,
