@@ -166,6 +166,18 @@ def _get_cloud_provider():
         return "Unknown"
 
 
+def _mem_from_product(product: str) -> float | None:
+    if not product:
+        return None
+    m = re.search(r"(\d+(?:\.\d+)?)\s*gb", product, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            return None
+    return None
+
+
 def _convert_to_gb(value):
     """
     Convert Kubernetes memory/storage values to GB.
@@ -232,27 +244,33 @@ def get_nvidia_gpu_details():
             allocatable = node.get("status", {}).get("allocatable", {})
             if "nvidia.com/gpu" in allocatable:
                 node_name = node.get("metadata", {}).get("name", "Unknown")
+                labels = node.get("metadata", {}).get("labels", {})
                 gpu_count = allocatable.get("nvidia.com/gpu", "0")
-                memory = allocatable.get("memory", "Unknown")
+                product = labels.get("nvidia.com/gpu.product", "Unknown")
+                cpumemory = allocatable.get("memory", "Unknown")
                 storage = allocatable.get("ephemeral-storage", "Unknown")
+
+                per_gpu_mem = _mem_from_product(product)
+                per_gpu_mem_str = f"{per_gpu_mem} GB" if per_gpu_mem is not None else "Unknown"
                 
                 # Get instance type from labels
-                labels = node.get("metadata", {}).get("labels", {})
                 instance_type = labels.get("node.kubernetes.io/instance-type", "Unknown")
                 
                 # Get cloud provider from cluster info
                 cloud_provider = _get_cloud_provider()
                 
                 # Convert memory to GB
-                memory_gb = _convert_to_gb(memory)
+                memory_gb = _convert_to_gb(cpumemory)
                 storage_gb = _convert_to_gb(storage)
                 
                 gpu_info.append(f"• Cloud Provider: {cloud_provider}")
                 gpu_info.append(f"• Instance Type: {instance_type}")
                 gpu_info.append(f"• GPU Provider: NVIDIA")
+                gpu_info.append(f"• GPU Product: {product}")
+                gpu_info.append(f"• Per-GPU Memory: {per_gpu_mem_str} GB")
                 gpu_info.append(f"• Allocatable GPUs: {gpu_count}")
-                gpu_info.append(f"• Memory: {memory_gb} GB")
-                gpu_info.append(f"• Storage: {storage_gb} GB")
+                gpu_info.append(f"• Node RAM: {memory_gb} GB")
+                gpu_info.append(f"• Node Storage: {storage_gb} GB")
                 gpu_info.append(f"• Node Name: {node_name}")
                 gpu_info.append("")  # Empty line between nodes
         

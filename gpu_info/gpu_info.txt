@@ -1,7 +1,9 @@
 • Cloud Provider: GCP
 • Instance Type: a3-highgpu-8g
 • GPU Provider: NVIDIA
+• GPU Product: NVIDIA-H100-80GB-HBM3
+• Per-GPU Memory: 80.0 GB GB
 • Allocatable GPUs: 8
-• Memory: 1977.7 GB
-• Storage: 122.1 GB
+• Node RAM: 1977.7 GB
+• Node Storage: 122.1 GB
 • Node Name: ragmgpuh100-pool-wlbh-m7cbc-gpu-a-46lr2

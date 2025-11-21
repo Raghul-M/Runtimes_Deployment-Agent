@@ -121,7 +121,6 @@ def build_accelerator_specialist(
         "Use the provided tools to check GPU availability, validate accelerator compatibility, "
         "and provide detailed GPU information from OpenShift clusters. "
         "Always check cluster authentication before performing GPU operations. "
-        "Provide clear, structured responses with validation results and recommendations."
     )
 
     agent = create_agent(

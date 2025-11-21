@@ -44,9 +44,11 @@ def build_config_specialist(
         "First, print a short checklist showing the steps you are taking with [ ] / [x] (e.g., load cached "
         "requirements, estimate VRAM, compose report) and mark items complete as you go. "
         "Always call describe_preloaded_requirements first, then infer_gpu_needs, before writing the report. "
-        "After the checklist, craft a concise, human-readable deployment report that summarises model count, "
-        "model size (container image disk footprint), parameter counts, quantization bits, estimated VRAM needs, "
-        "and supported architectures. Always include per-model bullet points, and cite the JSON facts accurately."
+        "Base your response entirely on the cached JSON returned by describe_preloaded_requirements; do not ask "
+        "the user for file paths or additional input. After the checklist, craft a concise, human-readable "
+        "deployment report that summarises model count, model size (container image disk footprint), parameter "
+        "counts, quantization bits, estimated VRAM needs, and supported architectures. Always include per-model "
+        "bullet points, and cite the JSON facts accurately."
     )
 
     agent = create_agent(
