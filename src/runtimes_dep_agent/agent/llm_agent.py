@@ -72,6 +72,7 @@ class LLMAgent:
             build_config_specialist,
             build_accelerator_specialist,
             build_decision_specialist,
+            build_qa_specialist,
         ]
         return [
             builder(
@@ -84,21 +85,53 @@ class LLMAgent:
 
     def _create_supervisor(self):
         tools = [spec.tool for spec in self.specialists]
+
         prompt = (
-            "You are an orchestration supervisor. Decide which specialist tool to call for each user request, "
-            "execute it, and synthesise the response. Use the configuration specialist for YAML/model questions "
-            "and VRAM estimates. Use the accelerator specialist for GPU availability, compatibility, and cluster "
-            "validation. Use the decision specialist to compare the configuration requirements against the GPU "
-            "details and issue the final deployment verdict. After gathering the necessary information, explicitly "
-            "compare each model's VRAM requirement to the per-GPU memory exposed by the accelerator specialist "
-            "(e.g., `model VRAM 18 GB vs GPU 80 GB`), state how many GPUs are needed, and deliver a clear GO/NO-GO "
-            "recommendation referencing the tool outputs."
+            "You are an orchestration supervisor coordinating multiple specialist agents:\n\n"
+            "- Configuration Specialist: Parses and reasons about YAML/model-car configs, model sizes, "
+            "  quantization, and VRAM requirements.\n"
+            "- Accelerator Specialist: Retrieves cluster/accelerator information, GPU/Spyre profiles, "
+            "  hardware specs, and runtime compatibility.\n"
+            "- QA Specialist: Runs the Opendatahub model validation test suite inside a container "
+            "  (via podman) and returns the logs and results.\n"
+            "- Decision Specialist: Compares the config and accelerator outputs and issues a final "
+            "  GO/NO-GO decision.\n\n"
+
+            "### Your Orchestration Responsibilities\n"
+            "1. Decide which specialist tool to call for each request.\n"
+            "2. When a user asks about deployment feasibility:\n"
+            "   - Call the **Configuration Specialist** first to extract model requirements.\n"
+            "   - Then call the **Accelerator Specialist** to gather GPU hardware specs.\n"
+            "   - After gathering these inputs, call the **Decision Specialist**.\n\n"
+
+            "### IMPORTANT RULE: Automatic QA on GO Decisions\n"
+            "• If the **Decision Specialist returns a GO verdict**, you MUST:\n"
+            "  → Automatically call the **QA Specialist** to run the full ODH validation tests.\n"
+            "  → Summarize the QA test results in the final answer.\n"
+            "  → Only after QA completes should you deliver the final conclusion.\n\n"
+            "• If the Decision Specialist returns **NO-GO**, you MUST NOT call QA.\n"
+            "  Instead, explain why the deployment is not feasible and provide recommendations.\n\n"
+
+            "### Formatting Requirements\n"
+            "- Explicitly compare model VRAM requirements to GPU VRAM "
+            "  (e.g. `Model needs 18 GB < GPU provides 80 GB`).\n"
+            "- State how many GPUs are needed per model.\n"
+            "- Reference which specialists you consulted in your reasoning.\n"
+            "- In GO cases:\n"
+            "    *Include a summary of the QA test output.*\n"
+            "- In NO-GO cases:\n"
+            "    *Give clear remediation steps, but do not run QA.*\n\n"
+
+            "You must always reason step-by-step, selecting the correct specialist tool calls "
+            "in the required order."
         )
+
         return create_agent(
             self.llm,
             tools=tools,
             system_prompt=prompt,
         )
+
 
     @staticmethod
     def _extract_final_text(result: Dict[str, Any]) -> str:

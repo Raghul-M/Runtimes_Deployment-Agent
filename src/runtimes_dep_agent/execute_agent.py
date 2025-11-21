@@ -19,33 +19,34 @@ SCENARIO_REQUESTS: dict[str, list[tuple[str, str]]] = {
     "default": [
         (
             "Configuration",
-            "Load the provided model-car configuration and summarise the model requirements as structured text.",
+            "Summarize the model-car configuration and extract the model requirements."
         ),
         (
             "Accelerator Compatibility",
-            "Using the configuration context you just produced as guidance, validate accelerator availability and compatibility on the cluster. "
-            "Call the accelerator specialist to confirm login status, GPU provider, and any gaps versus the model requirements.",
+            "Validate accelerator availability and hardware compatibility for this model-car configuration."
         ),
         (
             "Deployment Decision",
-            "Using the cached configuration requirements and the GPU info captured on disk, call the decision specialist to compare VRAM needs "
-            "against per-GPU memory and provide a clear GO/NO-GO recommendation.",
+            "Provide a GO/NO-GO deployment recommendation based on the configuration and the cluster accelerators. "
+            "If GO, run full QA validation before concluding."
         ),
     ],
+
     "configuration": [
         (
             "Configuration",
-            "Report the model-car requirements for the given configuration file.",
+            "Summarize the model-car configuration and extract model requirements."
         ),
     ],
+
     "accelerator": [
         (
             "Accelerator Authentication",
-            "Confirm whether I am authenticated to the OpenShift cluster.",
+            "Check whether I am authenticated to the OpenShift cluster."
         ),
         (
             "Accelerator Validation",
-            "Check cluster GPU availability, provider details, and accelerator compatibility recommendations.",
+            "Describe GPU availability, provider details, and accelerator compatibility."
         ),
     ],
 }
