@@ -86,6 +86,7 @@ Produces three sections:
   - [x] Query GPU status
   - [x] Fetch detailed GPU info (written to `gpu_info/gpu_info.txt`)
   - [x] Validate accelerator compatibility (reports provider, status, and CUDA/ROCm notes)
+  - Includes a validation table summarising authentication, GPU availability, and whether the detected GPU meets the model’s VRAM requirement.
 - Deployment Decision
   - [x] Load cached requirements
   - [x] Read GPU info file
@@ -94,11 +95,11 @@ Produces three sections:
 
 A typical end-to-end response therefore concludes with something like:
 
-> **Deployment Decision**  
-> - `granite-3.1-8b-instruct` needs 18 GB VRAM  
-> - GPU inventory reports NVIDIA H100 (80 GB each), 8 GPUs total  
-> - Comparison: `model VRAM 18 GB vs GPU 80 GB` → fits on 1 GPU  
-> - **GO**: resources are sufficient for the requested model.
+> **Deployment Decision**
+> - `granite-3.1-8b-instruct` needs 18 GB VRAM
+> - GPU inventory reports NVIDIA H100 (80 GB each), 8 GPUs total
+> - Comparison: `model VRAM 18 GB vs GPU 80 GB`
+> - **GO**: one GPU is enough, leaving ample capacity in the cluster
 
 - Use `--config` to point at any other YAML file.
 - `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.
@@ -133,6 +134,12 @@ src/runtimes_dep_agent/
 
 - Packages live under `src/runtimes_dep_agent`; installing the project exposes the console script `agent`.
 - The specialist tooling is deliberately modular—drop another specialist builder into `agent/specialists/` and register it inside `LLMAgent._initialise_specialists`.
+
+### LangGraph-style Supervisor
+
+![Supervisor Diagram](supervisor-diagram.png)
+
+The orchestration follows LangGraph’s multi-agent supervisor workflow, where a single controller LLM routes user requests to the appropriate “tool” (configuration specialist, accelerator specialist, and deployment decision specialist). Each specialist is a self-contained LangChain agent with its own tools, allowing the supervisor to iteratively refine the answer: first parsing the config, then validating cluster GPUs, and finally delivering a GO/NO-GO decision. If you're new to the pattern, see the [LangGraph multi-agent guide](https://blog.langchain.com/langgraph-multi-agent-workflows/) for a visual overview—this repo’s PNG was adapted from that concept.
 
 ## Development Notes
 

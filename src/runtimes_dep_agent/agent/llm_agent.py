@@ -32,15 +32,7 @@ class LLMAgent:
                  api_key: str, 
                  model: str = "gemini-2.5-pro",
                  bootstrap_config: str | None = None,
-                 bootstrap_clone_gh_repo: str = "https://github.com/opendatahub-io/opendatahub-tests/tree/main",
-                 supported_accelerator_type: str = "NVIDIA",
-                 vllm_runtime_image: str = "registry.redhat.io/rh-ai/llm-runtime-rhel9:vllm-0.5.3",
-                 modelcar_image_name: str = "quay.io/rh-ai/model-car-rhel9:vllm-0.5.3",
                  ) -> None:
-        
-        self.supported_accelerator_type = supported_accelerator_type
-        self.vllm_runtime_image = vllm_runtime_image
-        self.modelcar_image_name = modelcar_image_name
     
         self.llm = ChatGoogleGenerativeAI(
             model=model,
@@ -52,26 +44,6 @@ class LLMAgent:
         if bootstrap_config:
             config = load_llm_model_config(bootstrap_config)
             self.precomputed_requirements = get_model_requirements(config)
-        if bootstrap_clone_gh_repo:
-            tarball_path = "/tmp/repo.tar.gz"
-            subprocess.run(
-                ["git", "clone", "--depth", "1", "--branch", "main", 
-                 bootstrap_clone_gh_repo, "/tmp/repo"],
-                check=True,
-            )
-            subprocess.run(
-                ["tar", "-czf", tarball_path, "-C", "/tmp/repo", "."],
-                check=True,
-            )
-            subprocess.run(
-                ["uv", "pip", "install", tarball_path],
-                check=True,
-            )
-            subprocess.run(
-                ["rm", "-rf", "/tmp/repo"],
-                check=True,
-            )
-            logger.info("Cloned GitHub repository to %s", tarball_path)
 
         self.specialists: List[SpecialistSpec] = self._initialise_specialists()
         self._supervisor = self._create_supervisor()
