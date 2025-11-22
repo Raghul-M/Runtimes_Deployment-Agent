@@ -9,7 +9,7 @@ from langchain_core.runnables import Runnable
 @dataclass
 class SpecialistSpec:
     """Container describing a specialist agent and the tool exposed to the supervisor."""
-
+ 
     name: str
     agent: Runnable
     tool: Any

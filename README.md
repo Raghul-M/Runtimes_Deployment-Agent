@@ -5,6 +5,8 @@
 [![uv](https://img.shields.io/badge/uv-package%20manager-blueviolet)](https://github.com/astral-sh/uv)
 [![LangChain](https://img.shields.io/badge/Built%20with-LangChain%201.x-orange)](https://python.langchain.com)
 
+![Supervisor Diagram](supervisor-diagram.png)
+
 Supervisor-driven orchestration for analysing model-car configurations. The tool follows LangChain’s [supervisor pattern](https://docs.langchain.com/oss/python/langchain/supervisor), combining a primary LLM with a configuration specialist that understands Red Hat “model-car” manifests and the container images they reference.
 
 ## Features
@@ -41,7 +43,7 @@ pip install -e .
 export GEMINI_API_KEY="your-key-here"
 
 # Inspect the bundled sample configuration
-agent configuration --config config-yaml/sample_modelcar_config.yaml
+agent --config config-yaml/sample_modelcar_config.yaml
 ```
 
 The command prints a **Configuration** section containing the parsed model requirements, including container size, estimated VRAM (based on parameters/quantization parsed from the model name), and supported architecture. Example snippet:
@@ -86,6 +88,7 @@ Produces three sections:
   - [x] Query GPU status
   - [x] Fetch detailed GPU info (written to `gpu_info/gpu_info.txt`)
   - [x] Validate accelerator compatibility (reports provider, status, and CUDA/ROCm notes)
+  - Includes a validation table summarising authentication, GPU availability, and whether the detected GPU meets the model’s VRAM requirement.
 - Deployment Decision
   - [x] Load cached requirements
   - [x] Read GPU info file
@@ -94,11 +97,11 @@ Produces three sections:
 
 A typical end-to-end response therefore concludes with something like:
 
-> **Deployment Decision**  
-> - `granite-3.1-8b-instruct` needs 18 GB VRAM  
-> - GPU inventory reports NVIDIA H100 (80 GB each), 8 GPUs total  
-> - Comparison: `model VRAM 18 GB vs GPU 80 GB` → fits on 1 GPU  
-> - **GO**: resources are sufficient for the requested model.
+> **Deployment Decision**
+> - `granite-3.1-8b-instruct` needs 18 GB VRAM
+> - GPU inventory reports NVIDIA H100 (80 GB each), 8 GPUs total
+> - Comparison: `model VRAM 18 GB vs GPU 80 GB`
+> - **GO**: one GPU is enough, leaving ample capacity in the cluster
 
 - Use `--config` to point at any other YAML file.
 - `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.
