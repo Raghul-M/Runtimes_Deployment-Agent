@@ -250,8 +250,18 @@ def get_nvidia_gpu_details():
                 cpumemory = allocatable.get("memory", "Unknown")
                 storage = allocatable.get("ephemeral-storage", "Unknown")
 
-                per_gpu_mem = _mem_from_product(product)
-                per_gpu_mem_str = f"{per_gpu_mem} GB" if per_gpu_mem is not None else "Unknown"
+                per_gpu_mem_gb = None
+                gpu_mem_mib = labels.get("nvidia.com/gpu.memory")
+
+                if gpu_mem_mib is not None:
+                    try:
+                        # label is in MiB, convert to GiB
+                        per_gpu_mem_gb = round(int(gpu_mem_mib) / 1024, 2)
+                    except ValueError:
+                        per_gpu_mem_gb = None
+                else:
+                    per_gpu_mem_gb = _mem_from_product(product)
+                per_gpu_mem_str = f"{per_gpu_mem_gb} GB" if per_gpu_mem_gb is not None else "Unknown"
                 
                 # Get instance type from labels
                 instance_type = labels.get("node.kubernetes.io/instance-type", "Unknown")

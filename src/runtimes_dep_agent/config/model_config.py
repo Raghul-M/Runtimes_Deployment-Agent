@@ -171,7 +171,6 @@ def get_model_requirements(config: Dict) -> Dict:
         requirements[name] = {
             'model_name': model_info.get('name', 'unknown'),
             'image': model_info.get('image', 'default-image'),
-            'gpu_count': model_info.get('serving_arguments', {}).get('gpu_count', 0),
             'arguments': model_info.get('serving_arguments', {}).get('args', []),
             'model_size_gb': _estimate_model_size(model_info.get('image', 'default-image')),
             'model_p_billion': params_billion,
@@ -213,3 +212,22 @@ def calculate_gpu_requirements(
             continue
         total_gb += P * (Q / 8.0) * (1.0 + overhead_factor)
     return math.ceil(total_gb)
+
+def optimal_serving_arguments(
+        requirements: Dict,
+    ) -> str:
+    """Generate optimal serving arguments based on model requirements.
+
+    Args:
+        requirements (Dict): Model requirements dictionary.
+    Returns:
+        str: Suggested serving arguments.
+    """
+    args = []
+    for model_name, info in requirements.items():
+        model_args = info.get("arguments", [])
+        if model_args:
+            args.append(f"Model '{model_name}' serving arguments: {' '.join(model_args)}")
+        else:
+            args.append(f"Model '{model_name}' has no specific serving arguments defined.")
+    return "\n".join(args)

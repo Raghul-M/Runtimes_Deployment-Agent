@@ -1,1 +1,9 @@
-No GPU available in the cluster
+• Cloud Provider: AWS
+• Instance Type: g6e.xlarge
+• GPU Provider: NVIDIA
+• GPU Product: NVIDIA-L40S
+• Per-GPU Memory: 44.99 GB GB
+• Allocatable GPUs: 1
+• Node RAM: 32.0 GB
+• Node Storage: 114.3 GB
+• Node Name: ip-10-0-9-205.ec2.internal

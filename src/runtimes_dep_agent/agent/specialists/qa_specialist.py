@@ -10,6 +10,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Callable
+import yaml
 
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -32,35 +33,18 @@ def build_qa_specialist(
     def run_odh_tests() -> str:
         """
         Run the ODH model validation test suite using a staged kubeconfig under /tmp.
-
-        This mirrors the manual pattern that worked:
-
-            cp ~/.kube/config /tmp/kubeconfig-debug
-            chmod 644 /tmp/kubeconfig-debug
-            podman run --rm \
-              -e KUBECONFIG=/root/.kube/config \
-              -v /tmp/kubeconfig-debug:/root/.kube/config:Z \
-              ...
-
-        but adapted for the opendatahub-tests image, which runs as user 'odh'
-        and expects to use /home/odh/.kube/config.
-
-        While the tests run, this tool streams logs to stdout with a [QA] prefix.
-        It returns a machine-readable status string:
-
-            - 'QA_OK:<full logs>' on success
-            - 'QA_ERROR:KUBECONFIG_MISSING ...'
-            - 'QA_ERROR:KUBECONFIG_INVALID ...'
-            - 'QA_ERROR:CLUSTER_UNREACHABLE ...'
-            - 'QA_ERROR:TESTS_FAILED ...'
-            - 'QA_ERROR:TIMEOUT ...'
-            - 'QA_ERROR:RUNTIME_NOT_FOUND ...'
-            - 'QA_ERROR:UNEXPECTED ...'
         """
 
         image = "quay.io/opendatahub/opendatahub-tests:latest"
+        runtime_image = "quay.io/modh/vllm@sha256:db766445a1e3455e1bf7d16b008f8946fcbe9f277377af7abb81ae358805e7e2"
+        host_modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
+        REGISTRY_PULL_SECRET = os.environ.get("OCI_REGISTRY_PULL_SECRET", "")
+        if not REGISTRY_PULL_SECRET:
+            msg = "QA_ERROR:OCI_PULL_SECRET_MISSING OCI registry pull secret not set in environment."
+            logger.error(msg)
+            print(f"[QA] {msg}", flush=True)
+            return msg
 
-        # 1. Resolve host kubeconfig (prefer $KUBECONFIG, then ~/.kube/config)
         host_kubeconfig = os.environ.get(
             "KUBECONFIG", os.path.expanduser("~/.kube/config")
         )
@@ -72,56 +56,63 @@ def build_qa_specialist(
             print(f"[QA] {msg}", flush=True)
             return msg
 
-        # 2. Stage kubeconfig & results under /tmp (to avoid weird $HOME FS / xattrs)
         tmp_dir = Path(tempfile.mkdtemp(prefix="odh-tests-"))
         staged_kubeconfig = tmp_dir / "kubeconfig"
         results_dir = tmp_dir / "results"
 
+        if not host_modelcar_path.exists():
+            return f"QA_ERROR:MODELCAR_NOT_FOUND {host_modelcar_path}"
+
+        tmp_modelcar_path = tmp_dir / "modelcar.yaml"
+        shutil.copy2(host_modelcar_path, tmp_modelcar_path)
+
+
         try:
-            # Copy kubeconfig to a normal, writable filesystem
             shutil.copy2(host_kubeconfig_path, staged_kubeconfig)
             staged_kubeconfig.chmod(0o644)
 
             results_dir.mkdir(parents=True, exist_ok=True)
             results_dir.chmod(0o777)
 
-            # 3. Build podman command
             cmd = [
-                "podman",
-                "run",
-                "--rm",
-                "-e",
-                "KUBECONFIG=/home/odh/.kube/config",
-                "-v",
-                f"{staged_kubeconfig}:/home/odh/.kube/config:Z",
-                "-v",
-                f"{results_dir}:/home/odh/opendatahub-tests/results:Z",
+                "podman", "run", "--rm",
+                "-e", "KUBECONFIG=/home/odh/.kube/config",
+                "-e", f"OCI_REGISTRY_PULL_SECRET={REGISTRY_PULL_SECRET}",
+                "-v", f"{staged_kubeconfig}:/home/odh/.kube/config:Z",
+                "-v", f"{results_dir}:/home/odh/opendatahub-tests/results:Z",
+                "-v", f"{tmp_modelcar_path}:/home/odh/opendatahub-tests/modelcar.yaml:Z",
                 image,
+                "-vv",
+                "tests/model_serving/model_runtime/model_validation/test_modelvalidation.py",
+                "--model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml",
+                f"--vllm-runtime-image={runtime_image}",
+                "--supported-accelerator-type=Nvidia",
+                "--registry-host=registry.redhat.io",
+                "--snapshot-update",
+                "--log-file=/home/odh/opendatahub-tests/results/pytest-logs.log",
             ]
+
 
             logger.info("Running ODH tests with command: %s", " ".join(map(str, cmd)))
             print("[QA] Starting ODH tests in container...", flush=True)
 
-            # 4. Start process and stream logs
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,  # merge stderr into stdout
+                stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
             )
 
             output_lines: list[str] = []
             start = time.time()
-            timeout = 600  # seconds; adjust as needed
+            timeout = 1800  # 30 minutes
 
             assert proc.stdout is not None
             for line in proc.stdout:
                 output_lines.append(line)
-                # Stream a snippet of logs to the user
                 print(f"[QA] {line}", end="", flush=True)
 
-                # Timeout check
                 if time.time() - start > timeout:
                     proc.kill()
                     msg = (

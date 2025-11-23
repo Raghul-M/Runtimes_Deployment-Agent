@@ -1,1 +1,2 @@
 export GEMINI_API_KEY="your_actual_api_key_here"
+export OCI_REGISTRY_PULL_SECRET="your_actual_pull_secret_here"
