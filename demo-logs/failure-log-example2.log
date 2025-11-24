@@ -1,0 +1,231 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1763877811.931622  579920 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+
+Supervisor Output
+-----------------
+INFO:runtimes_dep_agent.agent.specialists.qa_specialist:Running ODH tests with command: podman run --rm -e KUBECONFIG=/home/odh/.kube/config -v /tmp/odh-tests-ap3cl9ql/kubeconfig:/home/odh/.kube/config:Z -v /tmp/odh-tests-ap3cl9ql/results:/home/odh/opendatahub-tests/results:Z -v /tmp/odh-tests-ap3cl9ql/modelcar.yaml:/home/odh/opendatahub-tests/modelcar.yaml:Z quay.io/opendatahub/opendatahub-tests:latest -vv tests/model_serving/model_runtime/model_validation/test_modelvalidation.py --model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml --vllm-runtime-image=quay.io/modh/vllm@sha256:db766445a1e3455e1bf7d16b008f8946fcbe9f277377af7abb81ae358805e7e2 --supported-accelerator-type=Nvidia --registry-host=registry.redhat.io --snapshot-update --log-file=/home/odh/opendatahub-tests/results/pytest-logs.log
+[QA] Starting ODH tests in container...
+[QA] 2025-11-23T06:03:43.956168 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] 2025-11-23T06:03:44.390684 ocp_resources.resource INFO kind: DataScienceCluster api version: datasciencecluster.opendatahub.io/v2
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] 2025-11-23T06:03:44.586988 ocp_resources.resource INFO kind: DSCInitialization api version: dscinitialization.opendatahub.io/v2
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] 2025-11-23T06:03:44.682962 conftest INFO Running model registry tests against default namespace
+[QA] 2025-11-23T06:03:44.683594 ocp_resources.resource INFO kind: DataScienceCluster api version: datasciencecluster.opendatahub.io/v2
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] ============================= test session starts ==============================
+[QA] platform linux -- Python 3.13.9, pytest-9.0.1, pluggy-1.6.0 -- /home/odh/opendatahub-tests/.venv/bin/python
+[QA] cachedir: .pytest_cache
+[QA] metadata: {'Python': '3.13.9', 'Platform': 'Linux-6.17.7-300.fc43.x86_64-x86_64-with-glibc2.41', 'Packages': {'pytest': '9.0.1', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.11.0', 'asyncio': '1.3.0', 'dependency': '0.6.0', 'html': '4.1.1', 'jira': '0.3.22', 'metadata': '3.1.1', 'order': '1.3.0', 'progress': '1.4.0', 'testconfig': '0.2.0', 'xdist': '3.8.0', 'syrupy': '5.0.0'}}
+[QA] rootdir: /home/odh/opendatahub-tests
+[QA] configfile: pytest.ini
+[QA] plugins: anyio-4.11.0, asyncio-1.3.0, dependency-0.6.0, html-4.1.1, jira-0.3.22, metadata-3.1.1, order-1.3.0, progress-1.4.0, testconfig-0.2.0, xdist-3.8.0, syrupy-5.0.0
+[QA] asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+[QA] collecting ... collected 1 item
+[QA] 
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] 
+[QA] ------------------------- test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] -------------------------
+[QA] -------------------------------------------------------- SETUP --------------------------------------------------------
+[QA] 2025-11-23T06:03:44.864161 conftest INFO Executing session fixture: admin_client
+[QA] 2025-11-23T06:03:44.864317 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] 2025-11-23T06:03:44.871953 conftest INFO Executing session fixture: dsc_resource
+[QA] 2025-11-23T06:03:44.872138 ocp_resources.resource INFO kind: DataScienceCluster api version: datasciencecluster.opendatahub.io/v2
+[QA] 2025-11-23T06:03:45.133870 conftest INFO Executing package fixture: enabled_kserve_in_dsc
+[QA] 2025-11-23T06:03:45.256703 utilities.data_science_cluster_utils WARNING Component kserve was already set to managementState Managed
+[QA] 2025-11-23T06:03:45.257298 conftest INFO Executing session fixture: event_loop_policy
+[QA] 2025-11-23T06:03:45.257790 conftest INFO Executing session fixture: _syrupy_apply_ide_patches
+[QA] 2025-11-23T06:03:45.258247 conftest INFO Executing session fixture: tmp_path_factory
+[QA] 2025-11-23T06:03:45.258525 conftest INFO Executing session fixture: tests_tmp_dir
+[QA] 2025-11-23T06:03:45.260681 conftest INFO Executing session fixture: os_path_environment
+[QA] 2025-11-23T06:03:45.261093 conftest INFO Executing session fixture: tmpdir_factory
+[QA] 2025-11-23T06:03:45.261384 conftest INFO Executing session fixture: bin_directory
+[QA] 2025-11-23T06:03:45.262396 conftest INFO Executing session fixture: oc_binary_path
+[QA] 2025-11-23T06:03:45.262767 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] 2025-11-23T06:03:45.518734 ocp_resources.resource INFO kind: ConsoleCLIDownload api version: console.openshift.io/v1
+[QA] 2025-11-23T06:03:45.605665 utilities.infra INFO All oc console cli download links: ['https://downloads-openshift-console.apps.ragmawsgpu-pool-s29p9.aws.rh-ods.com/amd64/linux/oc.tar']
+[QA] 2025-11-23T06:03:45.605763 utilities.infra INFO Downloading archive using: url=https://downloads-openshift-console.apps.ragmawsgpu-pool-s29p9.aws.rh-ods.com/amd64/linux/oc.tar
+[QA] 2025-11-23T06:03:55.716549 utilities.infra INFO Extract the downloaded archive.
+[QA] 2025-11-23T06:03:55.809258 utilities.infra INFO Downloaded file: ['oc']
+[QA] 2025-11-23T06:03:55.821481 conftest INFO Executing session fixture: bin_directory_to_os_path
+[QA] 2025-11-23T06:03:55.821792 tests.conftest INFO OC binary path: /tmp/pytest-cRztJr2S2uTK9FJr7qfmyo/bin0/oc
+[QA] 2025-11-23T06:03:55.821870 tests.conftest INFO Adding /tmp/pytest-cRztJr2S2uTK9FJr7qfmyo/bin0 to $PATH
+[QA] 2025-11-23T06:03:55.822045 conftest INFO Executing session fixture: nodes
+[QA] 2025-11-23T06:03:59.130151 conftest INFO Executing session fixture: dsci_resource
+[QA] 2025-11-23T06:03:59.130331 ocp_resources.resource INFO kind: DSCInitialization api version: dscinitialization.opendatahub.io/v2
+[QA] 2025-11-23T06:03:59.169005 conftest INFO Executing session fixture: record_testsuite_property
+[QA] 2025-11-23T06:03:59.169223 conftest INFO Executing session fixture: junitxml_plugin
+[QA] 2025-11-23T06:03:59.169372 conftest INFO Executing session fixture: cluster_sanity_scope_session
+[QA] 2025-11-23T06:03:59.169507 utilities.infra INFO Check cluster sanity.
+[QA] 2025-11-23T06:03:59.169576 ocp_utilities.infra INFO Verify all nodes are in a healthy condition.
+[QA] 2025-11-23T06:03:59.524783 ocp_utilities.infra INFO Verify all nodes are schedulable.
+[QA] 2025-11-23T06:03:59.748696 ocp_resources DSCInitialization INFO Get DSCInitialization default-dsci status
+[QA] 2025-11-23T06:03:59.748031 timeout_sampler INFO Waiting for 120 seconds [0:02:00], retry every 5 seconds. (Function: utilities.infra.wait_for_dsci_status_ready  Kwargs: {'dsci_resource': <ocp_resources.dsc_initialization.DSCInitialization object at 0x7fbb7ffa4b90>})
+[QA] 2025-11-23T06:03:59.748489 utilities.infra INFO Wait for DSCI default-dsci to be in Ready status.
+[QA] 2025-11-23T06:03:59.784451 ocp_resources DataScienceCluster INFO Get DataScienceCluster default-dsc status
+[QA] 2025-11-23T06:03:59.783834 timeout_sampler INFO Elapsed time: 0.0005130767822265625 [0:00:00.000513]
+[QA] 2025-11-23T06:03:59.784155 timeout_sampler INFO Waiting for 120 seconds [0:02:00], retry every 5 seconds. (Function: utilities.infra.wait_for_dsc_status_ready  Kwargs: {'dsc_resource': <ocp_resources.data_science_cluster.DataScienceCluster object at 0x7fbb7ffa6e90>})
+[QA] 2025-11-23T06:03:59.784303 utilities.infra INFO Wait for DSC default-dsc are Ready.
+[QA] 2025-11-23T06:03:59.843207 timeout_sampler INFO Elapsed time: 0.0001938343048095703 [0:00:00.000194]
+[QA] 2025-11-23T06:03:59.843747 conftest INFO Executing session fixture: autouse_fixtures
+[QA] 2025-11-23T06:03:59.844287 conftest INFO Executing session fixture: pytestconfig
+[QA] 2025-11-23T06:03:59.844664 conftest INFO Executing session fixture: supported_accelerator_type
+[QA] 2025-11-23T06:03:59.844975 conftest INFO Executing session fixture: skip_if_no_supported_accelerator_type
+[QA] 2025-11-23T06:03:59.845338 conftest INFO Executing session fixture: teardown_resources
+[QA] 2025-11-23T06:03:59.845643 conftest INFO Executing session fixture: vllm_runtime_image
+[QA] 2025-11-23T06:03:59.845924 conftest INFO Executing session fixture: registry_pull_secret
+[QA] ERROR
+[QA] TEST: TestVLLMModelCarRaw.test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] [setup] STATUS: ERROR
+[QA] 2025-11-23T06:03:59.913833 conftest ERROR fixturedef = <FixtureDef argname='registry_pull_secret' scope='session' baseid='tests'>
+[QA] request = <SubRequest 'registry_pull_secret' for <Function test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]>>
+[QA] 
+[QA]     @pytest.hookimpl(wrapper=True)
+[QA]     def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:
+[QA]         asyncio_mode = _get_asyncio_mode(request.config)
+[QA]         if not _is_asyncio_fixture_function(fixturedef.func):
+[QA]             if asyncio_mode == Mode.STRICT:
+[QA]                 # Ignore async fixtures without explicit asyncio mark in strict mode
+[QA]                 # This applies to pytest_trio fixtures, for example
+[QA] >               return (yield)
+[QA]                         ^^^^^
+[QA] 
+[QA] .venv/lib64/python3.13/site-packages/pytest_asyncio/plugin.py:728: 
+[QA] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[QA] 
+[QA] pytestconfig = <_pytest.config.Config object at 0x7fbb870801a0>
+[QA] 
+[QA]     @pytest.fixture(scope="session")
+[QA]     def registry_pull_secret(pytestconfig: Config) -> str:
+[QA]         registry_pull_secret = pytestconfig.option.registry_pull_secret
+[QA]         if not registry_pull_secret:
+[QA] >           raise ValueError(
+[QA]                 "Registry pull secret is not set. "
+[QA]                 "Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable"
+[QA]             )
+[QA] E           ValueError: Registry pull secret is not set. Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable
+[QA] 
+[QA] tests/conftest.py:157: ValueError
+[QA] ------------------------------------------------------- TEARDOWN -------------------------------------------------------
+[QA] 
+[QA] _ ERROR at setup of TestVLLMModelCarRaw.test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] _
+[QA] 
+[QA] fixturedef = <FixtureDef argname='registry_pull_secret' scope='session' baseid='tests'>
+[QA] request = <SubRequest 'registry_pull_secret' for <Function test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]>>
+[QA] 
+[QA]     @pytest.hookimpl(wrapper=True)
+[QA]     def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:
+[QA]         asyncio_mode = _get_asyncio_mode(request.config)
+[QA]         if not _is_asyncio_fixture_function(fixturedef.func):
+[QA]             if asyncio_mode == Mode.STRICT:
+[QA]                 # Ignore async fixtures without explicit asyncio mark in strict mode
+[QA]                 # This applies to pytest_trio fixtures, for example
+[QA] >               return (yield)
+[QA]                         ^^^^^
+[QA] 
+[QA] .venv/lib64/python3.13/site-packages/pytest_asyncio/plugin.py:728: 
+[QA] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[QA] 
+[QA] pytestconfig = <_pytest.config.Config object at 0x7fbb870801a0>
+[QA] 
+[QA]     @pytest.fixture(scope="session")
+[QA]     def registry_pull_secret(pytestconfig: Config) -> str:
+[QA]         registry_pull_secret = pytestconfig.option.registry_pull_secret
+[QA]         if not registry_pull_secret:
+[QA] >           raise ValueError(
+[QA]                 "Registry pull secret is not set. "
+[QA]                 "Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable"
+[QA]             )
+[QA] E           ValueError: Registry pull secret is not set. Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable
+[QA] 
+[QA] tests/conftest.py:157: ValueError
+[QA] _ 1 of 1 completed, 0 Pass, 0 Fail, 0 Skip, 0 XPass, 0 XFail, 1 Error, 0 ReRun _
+[QA] ======================== 7 warnings, 1 error in 15.08s =========================
+[QA] 
+[QA] ==================================== ERRORS ====================================
+[QA] _ ERROR at setup of TestVLLMModelCarRaw.test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] _
+[QA] 
+[QA] fixturedef = <FixtureDef argname='registry_pull_secret' scope='session' baseid='tests'>
+[QA] request = <SubRequest 'registry_pull_secret' for <Function test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]>>
+[QA] 
+[QA]     @pytest.hookimpl(wrapper=True)
+[QA]     def pytest_fixture_setup(fixturedef: FixtureDef, request) -> object | None:
+[QA]         asyncio_mode = _get_asyncio_mode(request.config)
+[QA]         if not _is_asyncio_fixture_function(fixturedef.func):
+[QA]             if asyncio_mode == Mode.STRICT:
+[QA]                 # Ignore async fixtures without explicit asyncio mark in strict mode
+[QA]                 # This applies to pytest_trio fixtures, for example
+[QA] >               return (yield)
+[QA]                         ^^^^^
+[QA] 
+[QA] .venv/lib64/python3.13/site-packages/pytest_asyncio/plugin.py:728: 
+[QA] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[QA] 
+[QA] pytestconfig = <_pytest.config.Config object at 0x7fbb870801a0>
+[QA] 
+[QA]     @pytest.fixture(scope="session")
+[QA]     def registry_pull_secret(pytestconfig: Config) -> str:
+[QA]         registry_pull_secret = pytestconfig.option.registry_pull_secret
+[QA]         if not registry_pull_secret:
+[QA] >           raise ValueError(
+[QA]                 "Registry pull secret is not set. "
+[QA]                 "Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable"
+[QA]             )
+[QA] E           ValueError: Registry pull secret is not set. Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable
+[QA] 
+[QA] tests/conftest.py:157: ValueError
+[QA] =============================== warnings summary ===============================
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA]   /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]     warnings.warn(
+[QA] 
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA]   /home/odh/opendatahub-tests/utilities/infra.py:1185: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+[QA]     tar_file.extractall(path=tmpdir)
+[QA] 
+[QA] -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[QA] =========================== short test summary info ============================
+[QA] ERROR tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] - ValueError: Registry pull secret is not set. Either pass with `--registry_pull_secret` or set `OCI_REGISTRY_PULL_SECRET` environment variable
+[QA] ======================== 7 warnings, 1 error in 15.08s =========================
+ERROR:runtimes_dep_agent.agent.specialists.qa_specialist:ODH tests exited with code 1
+                                                                           ### Configuration Summary
+Based on the Configuration Specialist's report, the single preloaded model requires an estimated 18 GB of VRAM.
+- **Model:** `granite-3.1-8b-instruct`
+- **Disk Footprint:** 15.24 GB
+- **Parameters:** 8 Billion
+- **Quantization:** None
+- **Estimated VRAM:** 18 GB
+- **Supported Architectures:** amd64
+
+### Accelerator Summary
+The Accelerator Specialist reports that an NVIDIA GPU is available and supports CUDA-compatible models. Detailed hardware information was saved to a local file.
+
+### Deployment Decision
+The Decision Specialist reported a **NO-GO** verdict. The specialist was unable to proceed because it could not access the required GPU information, stating: "I am unable to process the request without the GPU information. Please provide the correct path to the `gpu_info.json` file."
+
+### QA Validation
+The QA Specialist reported that validation tests failed to run due to a configuration error. The test suite requires an OCI registry pull secret to download model images and could not find one. The process terminated before tests could be executed.

@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List
+import logging
 
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from .specialists import SpecialistSpec
 from .specialists.config_specialist import build_config_specialist
+from .specialists.qa_specialist import build_qa_specialist
 from .specialists.accelerator_specialist import build_accelerator_specialist
 from .specialists.decision_specialist import build_decision_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
+
+
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -24,8 +30,9 @@ class LLMAgent:
     def __init__(self, 
                  api_key: str, 
                  model: str = "gemini-2.5-pro",
-                 bootstrap_config: str | None = None
+                 bootstrap_config: str | None = None,
                  ) -> None:
+    
         self.llm = ChatGoogleGenerativeAI(
             model=model,
             api_key=api_key,
@@ -64,6 +71,7 @@ class LLMAgent:
             build_config_specialist,
             build_accelerator_specialist,
             build_decision_specialist,
+            build_qa_specialist,
         ]
         return [
             builder(
@@ -76,21 +84,43 @@ class LLMAgent:
 
     def _create_supervisor(self):
         tools = [spec.tool for spec in self.specialists]
+
         prompt = (
-            "You are an orchestration supervisor. Decide which specialist tool to call for each user request, "
-            "execute it, and synthesise the response. Use the configuration specialist for YAML/model questions "
-            "and VRAM estimates. Use the accelerator specialist for GPU availability, compatibility, and cluster "
-            "validation. Use the decision specialist to compare the configuration requirements against the GPU "
-            "details and issue the final deployment verdict. After gathering the necessary information, explicitly "
-            "compare each model's VRAM requirement to the per-GPU memory exposed by the accelerator specialist "
-            "(e.g., `model VRAM 18 GB vs GPU 80 GB`), state how many GPUs are needed, and deliver a clear GO/NO-GO "
-            "recommendation referencing the tool outputs."
+            "You are a supervisor agent that coordinates several specialist tools:\n"
+            "- Configuration Specialist: preloaded model-car requirements, YAML-derived details, VRAM estimates.\n"
+            "- Accelerator Specialist: cluster accelerators, GPU/Spyre profiles, hardware details.\n"
+            "- Decision Specialist: GO/NO-GO deployment decisions based on config + accelerators.\n"
+            "- QA Specialist: runs the Opendatahub model validation test suite and reports results.\n\n"
+
+            "A model-car configuration has already been processed by the host program. "
+            "You can access its details only via your tools; never ask the user for YAML or file paths.\n\n"
+
+            "Dynamic reasoning:\n"
+            "- Read the user's request and decide which specialist tool(s) to call.\n"
+            "- For generic triggers such as 'Start supervisor agent', you MUST perform a full deployment assessment:\n"
+            "  1) Use the Configuration Specialist to summarise preloaded model requirements.\n"
+            "  2) Use the Accelerator Specialist to inspect accelerators.\n"
+            "  3) Use the Decision Specialist to decide GO or NO-GO.\n"
+            "  4) If the user expects QA or you are issuing a deployment verdict, you MAY call the QA Specialist to\n"
+            "     run validation tests and include the results.\n\n"
+
+            "Output format:\n"
+            "- Always respond with a single structured report with the following sections:\n"
+            "  ### Configuration Summary\n"
+            "  ### Accelerator Summary\n"
+            "  ### Deployment Decision\n"
+            "  ### QA Validation (even if you only say it was not run)\n"
+            "- In each section, clearly state which facts came from which type of specialist.\n"
+            "- Do not introduce yourself or explain that you are a supervisor.\n"
         )
+
         return create_agent(
             self.llm,
             tools=tools,
             system_prompt=prompt,
         )
+
+
 
     @staticmethod
     def _extract_final_text(result: Dict[str, Any]) -> str:

@@ -8,7 +8,7 @@ from typing import Callable
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
-from ...config.model_config import calculate_gpu_requirements
+from ...config.model_config import calculate_gpu_requirements, optimal_serving_arguments
 
 from . import SpecialistSpec
 
@@ -37,6 +37,13 @@ def build_config_specialist(
         ]
         per_model_str = "; ".join(per_model)
         return f"Total VRAM requirements inferred: {total_vram} GB; per-model: {per_model_str}"
+    
+    @tool
+    def generate_optimal_serving_arguments() -> str:
+        """Generate optimal serving arguments based on model requirements."""
+        if not precomputed_requirements:
+            return "No preloaded requirements available to generate serving arguments."
+        return optimal_serving_arguments(precomputed_requirements)
         
 
     prompt = (
@@ -53,7 +60,7 @@ def build_config_specialist(
 
     agent = create_agent(
         llm,
-        tools=[describe_preloaded_requirements, infer_gpu_needs],
+        tools=[describe_preloaded_requirements, infer_gpu_needs, generate_optimal_serving_arguments],
         system_prompt=prompt,
     )
 
