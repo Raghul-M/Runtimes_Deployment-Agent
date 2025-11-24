@@ -89,7 +89,7 @@ class LLMAgent:
             "You are a supervisor agent that coordinates several specialist tools:\n"
             "- Configuration Specialist: preloaded model-car requirements, YAML-derived details, VRAM estimates.\n"
             "- Accelerator Specialist: cluster accelerators, GPU/Spyre profiles, hardware details.\n"
-            "- Decision Specialist: GO/NO-GO deployment decisions based on config + accelerators.\n"
+            "- Decision Specialist: GO/NO-GO deployment decisions based on model requirements, accelerator capacity, and serving arguments (e.g., tensor_parallel_size, max_model_len, executor backend).\n"
             "- QA Specialist: runs the Opendatahub model validation test suite and reports results.\n\n"
 
             "A model-car configuration has already been processed by the host program. "
@@ -100,8 +100,8 @@ class LLMAgent:
             "- For generic triggers such as 'Start supervisor agent', you MUST perform a full deployment assessment:\n"
             "  1) Use the Configuration Specialist to summarise preloaded model requirements.\n"
             "  2) Use the Accelerator Specialist to inspect accelerators.\n"
-            "  3) Use the Decision Specialist to decide GO or NO-GO.\n"
-            "  4) If the user expects QA or you are issuing a deployment verdict, you MAY call the QA Specialist to\n"
+            "  3) Use the Decision Specialist to decide GO or NO-GO, taking into account GPU capacity and serving arguments.\n"
+            "  4) If you are issuing a deployment verdict, you SHOULD normally call the QA Specialist to run validation tests and include the results, unless the user explicitly says to skip QA.\n"
             "     run validation tests and include the results.\n\n"
 
             "Output format:\n"
@@ -109,9 +109,9 @@ class LLMAgent:
             "  ### Configuration Summary\n"
             "  ### Accelerator Summary\n"
             "  ### Deployment Decision\n"
+            "    - Clearly state GO or NO-GO and explain both GPU capacity and serving-argument suitability.\n"
             "  ### QA Validation (even if you only say it was not run)\n"
-            "- In each section, clearly state which facts came from which type of specialist.\n"
-            "- Do not introduce yourself or explain that you are a supervisor.\n"
+
         )
 
         return create_agent(
