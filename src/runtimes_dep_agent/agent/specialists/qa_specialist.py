@@ -10,7 +10,6 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Callable
-import yaml
 
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
