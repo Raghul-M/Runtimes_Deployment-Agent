@@ -53,6 +53,11 @@ def build_decision_specialist(
     """Create the decision specialist that determines deployment feasibility."""
 
     @tool
+    def describe_preloaded_requirements() -> str:
+        """Return the preloaded model requirements as JSON."""
+        return json.dumps(precomputed_requirements, indent=2)
+    
+    @tool
     def assess_deployment_fit(file_path: str | None = None) -> str:
         """Evaluate whether cached models fit on the cluster GPUs (optionally override GPU info path)."""
         if not precomputed_requirements:
@@ -108,16 +113,49 @@ def build_decision_specialist(
             f"- Comparison: {comparison}"
         )
 
-    prompt = (
-        "You are a deployment decision specialist. Use the cached requirements and the GPU info file to decide "
-        "whether the models fit on the available hardware. Always call assess_deployment_fit to produce the "
-        "final analysis. Provide a clear comparison (e.g., model VRAM vs per-GPU memory) and state whether the "
-        "deployment is feasible."
-    )
+    prompt = """
+        You are a deployment decision specialist.
+
+        You MUST ALWAYS call BOTH tools:
+        1. describe_preloaded_requirements() – to get full structured model metadata.
+        2. assess_deployment_fit() – to get GPU capacity and VRAM fit data.
+
+        Use BOTH tool outputs together before writing the final answer.
+
+        Your responsibilities:
+        1. Evaluate model VRAM requirements vs GPU capacity.
+        2. Evaluate serving arguments against hardware:
+        - tensor_parallel_size
+        - distributed executor backend
+        - max_model_len (KV cache impact)
+        - gpu memory flags
+        - trust_remote_code
+        - dtype / quantization alignment
+        3. Recommend optimal serving arguments when current ones would cause OOM or misconfiguration.
+        4. If serving arguments are missing, infer safe/optimal defaults using the best vLLM deployment practices.
+        5. If GPU capacity is insufficient OR serving arguments are unsafe → declare **NO-GO**.
+        6. If capacity is sufficient AND arguments are safe → declare **GO**.
+
+        Your output MUST contain these sections:
+
+        ### Deployment Decision
+        (GO or NO-GO + explanation)
+
+        ### GPU Capacity Evaluation
+        (summarize results from assess_deployment_fit)
+
+        ### Serving Argument Evaluation
+        (what arguments exist, what’s wrong or right with them)
+
+        ### Recommended Optimal Serving Arguments
+        (concrete flags to use)
+
+        """
+
 
     agent = create_agent(
         llm,
-        tools=[assess_deployment_fit],
+        tools=[assess_deployment_fit, describe_preloaded_requirements],
         system_prompt=prompt,
     )
 
