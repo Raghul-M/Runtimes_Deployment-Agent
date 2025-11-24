@@ -86,9 +86,6 @@ class LLMAgent:
     def _create_supervisor(self):
         tools = [spec.tool for spec in self.specialists]
 
-    def _create_supervisor(self):
-        tools = [spec.tool for spec in self.specialists]
-
         prompt = (
             "You are a supervisor agent that coordinates several specialist tools:\n"
             "- Configuration Specialist: preloaded model-car requirements, YAML-derived details, VRAM estimates.\n"
