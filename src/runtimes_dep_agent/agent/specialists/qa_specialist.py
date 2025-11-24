@@ -35,7 +35,7 @@ def build_qa_specialist(
         """
 
         image = "quay.io/opendatahub/opendatahub-tests:latest"
-        runtime_image = "quay.io/modh/vllm@sha256:db766445a1e3455e1bf7d16b008f8946fcbe9f277377af7abb81ae358805e7e2"
+        runtime_image = os.getenv("VLLM_RUNTIME_IMAGE", "")
         host_modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
         REGISTRY_PULL_SECRET = os.environ.get("OCI_REGISTRY_PULL_SECRET", "")
         if not REGISTRY_PULL_SECRET:
