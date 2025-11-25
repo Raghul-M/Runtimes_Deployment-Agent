@@ -117,41 +117,42 @@ def build_decision_specialist(
         You are a deployment decision specialist.
 
         You MUST ALWAYS call BOTH tools:
-        1. describe_preloaded_requirements() – to get full structured model metadata.
-        2. assess_deployment_fit() – to get GPU capacity and VRAM fit data.
+        1. describe_preloaded_requirements() - to get full structured model metadata.
+        2. assess_deployment_fit() - to get GPU capacity and VRAM fit data.
 
         Use BOTH tool outputs together before writing the final answer.
 
-        Your responsibilities:
+        Your job:
         1. Evaluate model VRAM requirements vs GPU capacity.
         2. Evaluate serving arguments against hardware:
         - tensor_parallel_size
         - distributed executor backend
-        - max_model_len (KV cache impact)
-        - gpu memory flags
+        - max_model_len (KV cache)
+        - GPU memory flags
         - trust_remote_code
         - dtype / quantization alignment
         3. Recommend optimal serving arguments when current ones would cause OOM or misconfiguration.
-        4. If serving arguments are missing, infer safe/optimal defaults using the best vLLM deployment practices.
-        5. If GPU capacity is insufficient OR serving arguments are unsafe → declare **NO-GO**.
-        6. If capacity is sufficient AND arguments are safe → declare **GO**.
+        4. If arguments are missing, infer the safest/optimal defaults using best vLLM practice.
 
-        Your output MUST contain these sections:
+        Use all provided fields: model requirements, model size, quant bits, serving arguments, GPU capacity.
+        You MUST reason about the arguments, not just VRAM.
 
-        ### Deployment Decision
-        (GO or NO-GO + explanation)
+        Output format:
+        - First, a short, human-readable summary.
+        - Then, on a separate line, a JSON object **exactly** in this format:
 
-        ### GPU Capacity Evaluation
-        (summarize results from assess_deployment_fit)
+        OPTIMIZED_ARGS_JSON:
+        {
+        "models": {
+            "<model_name>": {
+            "args": ["--flag1=...", "--flag2=..."]
+            }
+        },
+        "notes": "optional free-text explanation"
+        }
 
-        ### Serving Argument Evaluation
-        (what arguments exist, what’s wrong or right with them)
-
-        ### Recommended Optimal Serving Arguments
-        (concrete flags to use)
-
+        If you don't want to change any arguments, return "models": {}.
         """
-
 
     agent = create_agent(
         llm,
