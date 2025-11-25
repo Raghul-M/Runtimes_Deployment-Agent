@@ -44,30 +44,88 @@ def build_config_specialist(
     def generate_optimal_serving_arguments(optimized_args_json: str) -> str:
         """
         Update the modelcar.yaml on disk with optimized serving arguments.
-        :param optimized_args_json: JSON string of optimized serving arguments.
-        :return: Confirmation message.
+
+        Expected JSON structure:
+        {
+        "model_name": "granite-3.1-8b-instruct",
+        "serving_arguments": {
+            "args": [
+            "--uvicorn-log-level=info",
+            "--max-model-len=2048",
+            "--trust-remote-code",
+            "--tensor-parallel-size=1"
+            ]
+        }
+        }
+
+        - model_name: name of the target model in the `model-car` list.
+        - serving_arguments: dict to merge into that model's serving_arguments.
         """
         modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
         if not modelcar_path.exists():
             return f"Error: model-car configuration file not found at {modelcar_path}."
+
         try:
             overrides = json.loads(optimized_args_json)
         except json.JSONDecodeError:
             return "Error: Provided serving arguments are not valid JSON."
-        
-        config_overrides = overrides.get("serving_arguments", {})
-        if not config_overrides:
+
+        target_name = overrides.get("model_name")
+        sa_overrides = overrides.get("serving_arguments") or {}
+
+        if not target_name:
+            return "Error: optimized JSON is missing 'model_name'."
+        if not sa_overrides:
             return "No serving arguments provided to update."
+
+        # Load existing YAML
         with open(modelcar_path, "r") as f:
-            cfg = yaml.safe_load(f)
-        if "serving_arguments" not in cfg:
-            cfg["serving_arguments"] = {}
-        cfg["serving_arguments"].update(config_overrides)
+            cfg = yaml.safe_load(f) or {}
+
+        # Normalise model-car to a list
+        model_car_block = cfg.get("model-car", [])
+        if isinstance(model_car_block, dict):
+            model_list = [model_car_block]
+        elif isinstance(model_car_block, list):
+            model_list = model_car_block
+        else:
+            return "Error: 'model-car' section is not a dict or list; cannot apply overrides."
+
+        updated_any = False
+        for entry in model_list:
+            if not isinstance(entry, dict):
+                continue
+
+            if entry.get("name") != target_name:
+                continue
+
+            if "serving_arguments" not in entry or not isinstance(entry["serving_arguments"], dict):
+                entry["serving_arguments"] = {}
+
+            # Merge new serving_arguments into existing block
+            entry["serving_arguments"].update(sa_overrides)
+            updated_any = True
+
+        if not updated_any:
+            return f"No model-car entry matched model_name '{target_name}'."
+
+        # Write back normalised structure
+        if isinstance(model_car_block, dict):
+            cfg["model-car"] = model_list[0]
+        else:
+            cfg["model-car"] = model_list
+
+        # Cleanup: remove accidental top-level serving_arguments created by older versions
+        if "serving_arguments" in cfg:
+            cfg.pop("serving_arguments")
+
         with open(modelcar_path, "w") as f:
             yaml.safe_dump(cfg, f)
-        return f"Updated serving arguments in {modelcar_path}."
+
+        return f"Updated serving arguments for model '{target_name}' in {modelcar_path}."
+
         
-        
+            
     prompt = """
         You are the Configuration Specialist.
 
@@ -75,28 +133,35 @@ def build_config_specialist(
         1. Load and analyze the preloaded model-car requirements.
         2. Infer VRAM requirements using the cached model information.
         3. Provide per-model deployment summaries.
-        4. When the supervisor or Decision Specialist provides optimized serving arguments,
-        apply them to the model-car YAML by calling the tool: `generate_optimal_serving_arguments`.
+        4. When the supervisor or Decision Specialist provides optimized serving arguments JSON,
+        apply them to the model-car YAML by calling the tool:
+        generate_optimal_serving_arguments(optimized_args_json).
 
         Rules:
         - Always begin your reasoning with a short checklist using [ ] and [x].
         - The checklist must always include:
-            [ ] Load preloaded requirements  
-            [ ] Infer VRAM needs  
-            [ ] Prepare configuration summary  
-            (Only include YAML-update tasks if explicitly requested.)
+            [ ] Load preloaded requirements
+            [ ] Infer VRAM needs
+            [ ] Prepare configuration summary
+        (Only include YAML-update tasks if explicitly requested.)
         - For normal config analysis, you must call describe_preloaded_requirements() first,
         then infer_gpu_needs(), before writing any report.
         - Never ask the user for file paths or external input.
-        - When updating YAML, only use the JSON strings given to you. Do not invent keys or values.
+
+        Handling optimized serving arguments:
+        - If the request you receive contains an 'OPTIMIZED_SERVING_ARGUMENTS_JSON' block with a JSON
+        code fence, you MUST:
+        1) Extract the JSON content inside the ```json ... ``` fence exactly.
+        2) Call generate_optimal_serving_arguments(optimized_args_json=<that JSON string>).
+        3) Return ONLY the message returned by generate_optimal_serving_arguments, without additional prose.
 
         Output Requirements:
         - For configuration reports, provide a clean and concise summary:
-            - model names  
-            - image size (GB)  
-            - parameter counts  
-            - quantization bits  
-            - estimated VRAM needs  
+            - model names
+            - image size (GB)
+            - parameter counts
+            - quantization bits
+            - estimated VRAM needs
             - supported architectures
         - When updating YAML, respond only with the return value of the tool you call.
 

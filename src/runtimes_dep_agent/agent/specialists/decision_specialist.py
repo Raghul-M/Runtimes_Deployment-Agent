@@ -137,21 +137,33 @@ def build_decision_specialist(
         Use all provided fields: model requirements, model size, quant bits, serving arguments, GPU capacity.
         You MUST reason about the arguments, not just VRAM.
 
-        Output format:
-        - First, a short, human-readable summary.
-        - Then, on a separate line, a JSON object **exactly** in this format:
+        When you emit OPTIMIZED_SERVING_ARGUMENTS_JSON:
 
-        OPTIMIZED_ARGS_JSON:
+        - You MUST treat it as a full replacement for the model's `serving_arguments` block.
+        - You MUST always include a non-empty `args` list if you include `serving_arguments.args`.
+        - Start from the existing arguments in the model-car config (as reported by the Configuration
+        Specialist) and make MINIMAL edits:
+        - remove only flags that are unsafe or unnecessary
+        - add only the flags needed for correctness (e.g. `--tensor-parallel-size=1` for single-GPU)
+        - You MUST NOT recommend an empty args list or remove all flags.
+        - Example shape:
+
+        ```json
         {
-        "models": {
-            "<model_name>": {
-            "args": ["--flag1=...", "--flag2=..."]
-            }
-        },
-        "notes": "optional free-text explanation"
+        "model_name": "granite-3.1-8b-instruct",
+        "serving_arguments": {
+            "args": [
+            "--uvicorn-log-level=info",
+            "--max-model-len=2048",
+            "--trust-remote-code",
+            "--tensor-parallel-size=1"
+            ],
+            "gpu_count": 1
         }
+        }
+        ```
 
-        If you don't want to change any arguments, return "models": {}.
+        If you don't want to change any arguments, return same json as input.
         """
 
     agent = create_agent(
