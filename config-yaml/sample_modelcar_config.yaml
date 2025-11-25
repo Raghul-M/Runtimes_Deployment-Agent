@@ -16,5 +16,4 @@ model-car:
     - --max-model-len=2048
     - --trust-remote-code
     - --tensor-parallel-size=1
-    - --gpu-memory-utilization=0.90
     gpu_count: 1
