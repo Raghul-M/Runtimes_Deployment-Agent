@@ -146,7 +146,7 @@ class LLMAgent:
             "      * Serving-argument suitability, AND\n"
             "      * Environment / access health (e.g. auth failures, unreachable cluster).\n"
             "    - If optimized serving arguments were applied, explicitly mention that they were written back to the\n"
-            "      model-car configuration.And provide a snippet of what optimization was applied.\n"
+            "      model-car configuration. And provide a snippet of what optimization was applied.\n"
             "  ### QA Validation (even if you only say it was not run)\n"
             "- In each section, clearly state which facts came from which type of specialist.\n"
             "- Do not introduce yourself or explain that you are a supervisor.\n"

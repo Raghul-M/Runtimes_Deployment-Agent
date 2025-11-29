@@ -78,11 +78,9 @@ def build_config_specialist(
         if not sa_overrides:
             return "No serving arguments provided to update."
 
-        # Load existing YAML
         with open(modelcar_path, "r") as f:
             cfg = yaml.safe_load(f) or {}
 
-        # Normalise model-car to a list
         model_car_block = cfg.get("model-car", [])
         if isinstance(model_car_block, dict):
             model_list = [model_car_block]
@@ -102,20 +100,18 @@ def build_config_specialist(
             if "serving_arguments" not in entry or not isinstance(entry["serving_arguments"], dict):
                 entry["serving_arguments"] = {}
 
-            # Merge new serving_arguments into existing block
             entry["serving_arguments"].update(sa_overrides)
             updated_any = True
+            break
 
         if not updated_any:
             return f"No model-car entry matched model_name '{target_name}'."
 
-        # Write back normalised structure
         if isinstance(model_car_block, dict):
             cfg["model-car"] = model_list[0]
         else:
             cfg["model-car"] = model_list
 
-        # Cleanup: remove accidental top-level serving_arguments created by older versions
         if "serving_arguments" in cfg:
             cfg.pop("serving_arguments")
 
@@ -123,8 +119,6 @@ def build_config_specialist(
             yaml.safe_dump(cfg, f)
 
         return f"Updated serving arguments for model '{target_name}' in {modelcar_path}."
-
-        
             
     prompt = """
         You are the Configuration Specialist.
