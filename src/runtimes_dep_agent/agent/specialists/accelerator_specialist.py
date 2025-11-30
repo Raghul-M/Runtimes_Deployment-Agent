@@ -14,6 +14,7 @@ from ...validators.accelerator_validator import (
     check_cluster_login,
     check_gpu_availability,
     get_gpu_info,
+    get_vllm_runtime_image_from_template
 )
 
 
@@ -61,6 +62,30 @@ def build_accelerator_specialist(
             return f"GPU information saved to {file_path}. GPU Provider: {gpu_provider}. Check the file for detailed information."
         else:
             return f"GPU information saved to {file_path}. No GPU available in the cluster."
+
+    @tool
+    def get_accelerator_metadata_json(
+        template_name: str
+    ) -> str:
+        """
+        Return accelerator metadata as JSON.
+        Example response:
+            {
+            "gpu_available": true,
+            "gpu_provider": "NVIDIA",
+            "servingruntime_image": "quay.io/rh-mlops/vllm-spyre-x86:latest"
+            }
+        """
+        gpu_status, gpu_provider = check_gpu_availability()
+        vllm_image = get_vllm_runtime_image_from_template(template_name=template_name)
+        
+        metadata = {
+            "gpu_available": gpu_status,
+            "gpu_provider": gpu_provider,
+            "vllm_image": vllm_image
+        }
+        
+        return json.dumps(metadata, indent=2)
 
     @tool
     def validate_accelerator_compatibility(request: str) -> str:
@@ -119,6 +144,9 @@ def build_accelerator_specialist(
         "and provide detailed GPU information from OpenShift clusters and the GPU size. "
         "Never ask the user for model requirements; rely on the cached JSON. "
         "Provide clear, structured responses with validation results and recommendations."
+        "You must always return a machine readable json output back to Supervisor by using the tool "
+        "get_accelerator_metadata_json() as a final step."
+
     )
 
     agent = create_agent(
@@ -128,6 +156,7 @@ def build_accelerator_specialist(
             check_gpu_status,
             get_detailed_gpu_information,
             validate_accelerator_compatibility,
+            get_accelerator_metadata_json
         ],
         system_prompt=prompt,
     )

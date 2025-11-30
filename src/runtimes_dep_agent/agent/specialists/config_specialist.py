@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Callable
 
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
-from ...config.model_config import calculate_gpu_requirements, optimal_serving_arguments
+import yaml
+from ...config.model_config import calculate_gpu_requirements
 
 from . import SpecialistSpec
 
@@ -39,24 +41,132 @@ def build_config_specialist(
         return f"Total VRAM requirements inferred: {total_vram} GB; per-model: {per_model_str}"
     
     @tool
-    def generate_optimal_serving_arguments() -> str:
-        """Generate optimal serving arguments based on model requirements."""
-        if not precomputed_requirements:
-            return "No preloaded requirements available to generate serving arguments."
-        return optimal_serving_arguments(precomputed_requirements)
-        
+    def generate_optimal_serving_arguments(optimized_args_json: str) -> str:
+        """
+        Update the modelcar.yaml on disk with optimized serving arguments.
 
-    prompt = (
-        "You are a model-car configuration specialist. "
-        "First, print a short checklist showing the steps you are taking with [ ] / [x] (e.g., load cached "
-        "requirements, estimate VRAM, compose report) and mark items complete as you go. "
-        "Always call describe_preloaded_requirements first, then infer_gpu_needs, before writing the report. "
-        "Base your response entirely on the cached JSON returned by describe_preloaded_requirements; do not ask "
-        "the user for file paths or additional input. After the checklist, craft a concise, human-readable "
-        "deployment report that summarises model count, model size (container image disk footprint), parameter "
-        "counts, quantization bits, estimated VRAM needs, and supported architectures. Always include per-model "
-        "bullet points, and cite the JSON facts accurately."
-    )
+        Expected JSON structure:
+        {
+        "model_name": "granite-3.1-8b-instruct",
+        "serving_arguments": {
+            "args": [
+            "--uvicorn-log-level=info",
+            "--max-model-len=2048",
+            "--trust-remote-code",
+            "--tensor-parallel-size=1"
+            ]
+        }
+        }
+
+        - model_name: name of the target model in the `model-car` list.
+        - serving_arguments: dict to merge into that model's serving_arguments.
+        """
+        modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
+        if not modelcar_path.exists():
+            return f"Error: model-car configuration file not found at {modelcar_path}."
+
+        try:
+            overrides = json.loads(optimized_args_json)
+        except json.JSONDecodeError:
+            return "Error: Provided serving arguments are not valid JSON."
+
+        target_name = overrides.get("model_name")
+        sa_overrides = overrides.get("serving_arguments") or {}
+
+        if not target_name:
+            return "Error: optimized JSON is missing 'model_name'."
+        if not sa_overrides:
+            return "No serving arguments provided to update."
+
+        with open(modelcar_path, "r") as f:
+            cfg = yaml.safe_load(f) or {}
+
+        model_car_block = cfg.get("model-car", [])
+        if isinstance(model_car_block, dict):
+            model_list = [model_car_block]
+        elif isinstance(model_car_block, list):
+            model_list = model_car_block
+        else:
+            return "Error: 'model-car' section is not a dict or list; cannot apply overrides."
+
+        updated_any = False
+        for entry in model_list:
+            if not isinstance(entry, dict):
+                continue
+
+            if entry.get("name") != target_name:
+                continue
+
+            if "serving_arguments" not in entry or not isinstance(entry["serving_arguments"], dict):
+                entry["serving_arguments"] = {}
+
+            entry["serving_arguments"].update(sa_overrides)
+            updated_any = True
+            break
+
+        if not updated_any:
+            return f"No model-car entry matched model_name '{target_name}'."
+
+        if isinstance(model_car_block, dict):
+            cfg["model-car"] = model_list[0]
+        else:
+            cfg["model-car"] = model_list
+
+        if "serving_arguments" in cfg:
+            cfg.pop("serving_arguments")
+
+        with open(modelcar_path, "w") as f:
+            yaml.safe_dump(cfg, f)
+
+        return f"Updated serving arguments for model '{target_name}' in {modelcar_path}."
+            
+    prompt = """
+        You are the Configuration Specialist.
+
+        Your responsibilities:
+        1. Load and analyze the preloaded model-car requirements.
+        2. Infer VRAM requirements using the cached model information.
+        3. Provide per-model deployment summaries.
+        4. When the supervisor or Decision Specialist provides optimized serving arguments JSON,
+        apply them to the model-car YAML by calling the tool:
+        generate_optimal_serving_arguments(optimized_args_json).
+
+        Rules:
+        - Always begin your reasoning with a short checklist using [ ] and [x].
+        - The checklist must always include:
+            [ ] Load preloaded requirements
+            [ ] Infer VRAM needs
+            [ ] Prepare configuration summary
+        (Only include YAML-update tasks if explicitly requested.)
+        - For normal config analysis, you must call describe_preloaded_requirements() first,
+        then infer_gpu_needs(), before writing any report.
+        - Never ask the user for file paths or external input.
+
+        Handling optimized serving arguments:
+        - If the request you receive contains an 'OPTIMIZED_SERVING_ARGUMENTS_JSON' block with a JSON
+        code fence, you MUST:
+        1) Extract the JSON content inside the ```json ... ``` fence exactly.
+        2) Call generate_optimal_serving_arguments(optimized_args_json=<that JSON string>).
+        3) Return ONLY the message returned by generate_optimal_serving_arguments, without additional prose.
+
+        Output Requirements:
+        - For configuration reports, provide a clean and concise summary:
+            - model names
+            - image size (GB)
+            - parameter counts
+            - quantization bits
+            - estimated VRAM needs
+            - supported architectures
+        - When updating YAML, respond only with the return value of the tool you call.
+
+        Tools available:
+        - describe_preloaded_requirements(): returns cached model-car fields as JSON
+        - infer_gpu_needs(): computes estimated VRAM from cached requirements
+        - generate_optimal_serving_arguments(optimized_args_json): updates modelcar.yaml on disk
+
+        Use the tools appropriately based on the user's request.
+        """
+
 
     agent = create_agent(
         llm,

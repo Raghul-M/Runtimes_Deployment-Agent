@@ -1,0 +1,238 @@
+agent --config config-yaml/sample_modelcar_config.yaml
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1764056773.075348  897444 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+
+Supervisor Output
+-----------------
+INFO:runtimes_dep_agent.agent.specialists.qa_specialist:Running ODH tests with command: podman run --rm -e KUBECONFIG=/home/odh/.kube/config -e OCI_REGISTRY_PULL_SECRET=cmgtZWUtZXF1YXJtam46Q291ckBnZTkjRWRSZW5lMjAxOQ== -v /tmp/odh-tests-w5vd76ip/kubeconfig:/home/odh/.kube/config:Z -v /tmp/odh-tests-w5vd76ip/results:/home/odh/opendatahub-tests/results:Z -v /tmp/odh-tests-w5vd76ip/modelcar.yaml:/home/odh/opendatahub-tests/modelcar.yaml:Z quay.io/opendatahub/opendatahub-tests:latest -vv tests/model_serving/model_runtime/model_validation/test_modelvalidation.py --model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml --vllm-runtime-image= --supported-accelerator-type=Nvidia --registry-host=registry.redhat.io --snapshot-update --log-file=/home/odh/opendatahub-tests/results/pytest-logs.log
+[QA] Starting ODH tests in container...
+[QA] 2025-11-25T07:49:17.927810 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] 2025-11-25T07:49:18.286946 ocp_resources.resource INFO kind: DataScienceCluster api version: datasciencecluster.opendatahub.io/v2
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] 2025-11-25T07:49:18.446723 ocp_resources.resource INFO kind: DSCInitialization api version: dscinitialization.opendatahub.io/v2
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] 2025-11-25T07:49:18.526342 conftest INFO Running model registry tests against default namespace
+[QA] 2025-11-25T07:49:18.526835 ocp_resources.resource INFO kind: DataScienceCluster api version: datasciencecluster.opendatahub.io/v2
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] ============================= test session starts ==============================
+[QA] platform linux -- Python 3.13.9, pytest-9.0.1, pluggy-1.6.0 -- /home/odh/opendatahub-tests/.venv/bin/python
+[QA] cachedir: .pytest_cache
+[QA] metadata: {'Python': '3.13.9', 'Platform': 'Linux-6.17.7-300.fc43.x86_64-x86_64-with-glibc2.41', 'Packages': {'pytest': '9.0.1', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '4.11.0', 'asyncio': '1.3.0', 'dependency': '0.6.0', 'html': '4.1.1', 'jira': '0.3.22', 'metadata': '3.1.1', 'order': '1.3.0', 'progress': '1.4.0', 'testconfig': '0.2.0', 'xdist': '3.8.0', 'syrupy': '5.0.0'}}
+[QA] rootdir: /home/odh/opendatahub-tests
+[QA] configfile: pytest.ini
+[QA] plugins: anyio-4.11.0, asyncio-1.3.0, dependency-0.6.0, html-4.1.1, jira-0.3.22, metadata-3.1.1, order-1.3.0, progress-1.4.0, testconfig-0.2.0, xdist-3.8.0, syrupy-5.0.0
+[QA] asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+[QA] collecting ... collected 1 item
+[QA] 
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] 
+[QA] ------------------------- test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] -------------------------
+[QA] -------------------------------------------------------- SETUP --------------------------------------------------------
+[QA] 2025-11-25T07:49:18.630335 conftest INFO Executing session fixture: admin_client
+[QA] 2025-11-25T07:49:18.630502 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] 2025-11-25T07:49:18.638261 conftest INFO Executing session fixture: dsc_resource
+[QA] 2025-11-25T07:49:18.638489 ocp_resources.resource INFO kind: DataScienceCluster api version: datasciencecluster.opendatahub.io/v2
+[QA] 2025-11-25T07:49:18.815378 conftest INFO Executing package fixture: enabled_kserve_in_dsc
+[QA] 2025-11-25T07:49:18.856086 utilities.data_science_cluster_utils WARNING Component kserve was already set to managementState Managed
+[QA] 2025-11-25T07:49:18.856538 conftest INFO Executing session fixture: event_loop_policy
+[QA] 2025-11-25T07:49:18.856953 conftest INFO Executing session fixture: _syrupy_apply_ide_patches
+[QA] 2025-11-25T07:49:18.857385 conftest INFO Executing session fixture: tmp_path_factory
+[QA] 2025-11-25T07:49:18.857666 conftest INFO Executing session fixture: tests_tmp_dir
+[QA] 2025-11-25T07:49:18.859724 conftest INFO Executing session fixture: os_path_environment
+[QA] 2025-11-25T07:49:18.860112 conftest INFO Executing session fixture: tmpdir_factory
+[QA] 2025-11-25T07:49:18.860384 conftest INFO Executing session fixture: bin_directory
+[QA] 2025-11-25T07:49:18.861707 conftest INFO Executing session fixture: oc_binary_path
+[QA] 2025-11-25T07:49:18.862069 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] 2025-11-25T07:49:19.074960 ocp_resources.resource INFO kind: ConsoleCLIDownload api version: console.openshift.io/v1
+[QA] 2025-11-25T07:49:19.149692 utilities.infra INFO All oc console cli download links: ['https://downloads-openshift-console.apps.ragmawsgpu-pool-s29p9.aws.rh-ods.com/amd64/linux/oc.tar']
+[QA] 2025-11-25T07:49:19.150032 utilities.infra INFO Downloading archive using: url=https://downloads-openshift-console.apps.ragmawsgpu-pool-s29p9.aws.rh-ods.com/amd64/linux/oc.tar
+[QA] 2025-11-25T07:49:28.345072 utilities.infra INFO Extract the downloaded archive.
+[QA] 2025-11-25T07:49:28.439008 utilities.infra INFO Downloaded file: ['oc']
+[QA] 2025-11-25T07:49:28.449377 conftest INFO Executing session fixture: bin_directory_to_os_path
+[QA] 2025-11-25T07:49:28.449660 tests.conftest INFO OC binary path: /tmp/pytest-hYo76wPUeb2qhfECdRjcxE/bin0/oc
+[QA] 2025-11-25T07:49:28.449708 tests.conftest INFO Adding /tmp/pytest-hYo76wPUeb2qhfECdRjcxE/bin0 to $PATH
+[QA] 2025-11-25T07:49:28.449832 conftest INFO Executing session fixture: nodes
+[QA] 2025-11-25T07:49:31.476330 conftest INFO Executing session fixture: dsci_resource
+[QA] 2025-11-25T07:49:31.476673 ocp_resources.resource INFO kind: DSCInitialization api version: dscinitialization.opendatahub.io/v2
+[QA] 2025-11-25T07:49:31.515772 conftest INFO Executing session fixture: record_testsuite_property
+[QA] 2025-11-25T07:49:31.516158 conftest INFO Executing session fixture: junitxml_plugin
+[QA] 2025-11-25T07:49:31.516456 conftest INFO Executing session fixture: cluster_sanity_scope_session
+[QA] 2025-11-25T07:49:31.516649 utilities.infra INFO Check cluster sanity.
+[QA] 2025-11-25T07:49:31.516772 ocp_utilities.infra INFO Verify all nodes are in a healthy condition.
+[QA] 2025-11-25T07:49:31.724779 ocp_utilities.infra INFO Verify all nodes are schedulable.
+[QA] 2025-11-25T07:49:31.929408 ocp_resources DSCInitialization INFO Get DSCInitialization default-dsci status
+[QA] 2025-11-25T07:49:31.928926 timeout_sampler INFO Waiting for 120 seconds [0:02:00], retry every 5 seconds. (Function: utilities.infra.wait_for_dsci_status_ready  Kwargs: {'dsci_resource': <ocp_resources.dsc_initialization.DSCInitialization object at 0x7f27c5390b90>})
+[QA] 2025-11-25T07:49:31.929214 utilities.infra INFO Wait for DSCI default-dsci to be in Ready status.
+[QA] 2025-11-25T07:49:31.969685 ocp_resources DataScienceCluster INFO Get DataScienceCluster default-dsc status
+[QA] 2025-11-25T07:49:31.968917 timeout_sampler INFO Elapsed time: 0.0003592967987060547 [0:00:00.000359]
+[QA] 2025-11-25T07:49:31.969294 timeout_sampler INFO Waiting for 120 seconds [0:02:00], retry every 5 seconds. (Function: utilities.infra.wait_for_dsc_status_ready  Kwargs: {'dsc_resource': <ocp_resources.data_science_cluster.DataScienceCluster object at 0x7f27c5392e90>})
+[QA] 2025-11-25T07:49:31.969506 utilities.infra INFO Wait for DSC default-dsc are Ready.
+[QA] 2025-11-25T07:49:32.016345 ocp_resources Namespace INFO Create Namespace raw-model-validation
+[QA] 2025-11-25T07:49:32.016493 ocp_resources Namespace INFO Posting {'apiVersion': 'v1', 'kind': 'Namespace', 'metadata': {'name': 'raw-model-validation'}, 'spec': {}}
+[QA] 2025-11-25T07:49:32.012895 timeout_sampler INFO Elapsed time: 0.00024700164794921875 [0:00:00.000247]
+[QA] 2025-11-25T07:49:32.013422 conftest INFO Executing session fixture: autouse_fixtures
+[QA] 2025-11-25T07:49:32.013919 conftest INFO Executing session fixture: pytestconfig
+[QA] 2025-11-25T07:49:32.014250 conftest INFO Executing session fixture: supported_accelerator_type
+[QA] 2025-11-25T07:49:32.014525 conftest INFO Executing session fixture: skip_if_no_supported_accelerator_type
+[QA] 2025-11-25T07:49:32.014801 conftest INFO Executing session fixture: teardown_resources
+[QA] 2025-11-25T07:49:32.015041 conftest INFO Executing session fixture: vllm_runtime_image
+[QA] 2025-11-25T07:49:32.015259 conftest INFO Executing session fixture: registry_pull_secret
+[QA] 2025-11-25T07:49:32.015543 conftest INFO Executing session fixture: registry_host
+[QA] 2025-11-25T07:49:32.015876 conftest INFO Executing class fixture: model_namespace
+[QA] 2025-11-25T07:49:32.098212 ocp_resources Namespace INFO Wait for Namespace raw-model-validation status to be Active
+[QA] 2025-11-25T07:49:32.098653 timeout_sampler INFO Waiting for 120 seconds [0:02:00], retry every 1 seconds. (Function: ocp_resources.resource.wait_for_status.lambda: self.exists)
+[QA] 2025-11-25T07:49:32.140110 ocp_resources Namespace INFO Status of Namespace raw-model-validation is Active
+[QA] 2025-11-25T07:49:32.140443 timeout_sampler INFO Elapsed time: 0.00032019615173339844 [0:00:00.000320]
+[QA] 2025-11-25T07:49:32.140991 conftest INFO Executing class fixture: model_car_serving_runtime
+[QA] 2025-11-25T07:49:32.141254 tests.model_serving.model_runtime.model_validation.conftest INFO using template: vllm-cuda-runtime-template
+[QA] 2025-11-25T07:49:32.141783 ocp_resources.resource INFO kind: Template api version: template.openshift.io/v1
+[QA] 2025-11-25T07:49:32.318143 ocp_resources ServingRuntime INFO Create ServingRuntime vllm-rawdeployment-runtime
+[QA] 2025-11-25T07:49:32.318202 ocp_resources ServingRuntime INFO Posting {'apiVersion': 'serving.kserve.io/v1alpha1', 'kind': 'ServingRuntime', 'metadata': {'annotations': {'opendatahub.io/recommended-accelerators': '["nvidia.com/gpu"]', 'opendatahub.io/runtime-version': 'v0.9.1.0', 'openshift.io/display-name': 'vLLM NVIDIA GPU ServingRuntime for KServe'}, 'labels': {'opendatahub.io/dashboard': 'true'}, 'name': 'vllm-rawdeployment-runtime', 'namespace': 'raw-model-validation'}, 'spec': {'annotations': {'opendatahub.io/kserve-runtime': 'vllm', 'prometheus.io/path': '/metrics', 'prometheus.io/port': '8080'}, 'containers': [{'args': ['--port=8080', '--model=/mnt/models', '--served-model-name={{.Name}}'], 'command': ['python', '-m', 'vllm.entrypoints.openai.api_server'], 'env': [{'name': 'HF_HOME', 'value': '/tmp/hf_home'}], 'image': 'registry.redhat.io/rhaiis/vllm-cuda-rhel9@sha256:ad756c01ec99a99cc7d93401c41b8d92ca96fb1ab7c5262919d818f2be4f3768', 'name': 'kserve-container', 'ports': [{'containerPort': 8080, 'protocol': 'TCP'}]}], 'multiModel': False, 'supportedModelFormats': [{'autoSelect': True, 'name': 'vLLM'}]}}
+[QA] 2025-11-25T07:49:32.318011 ocp_resources.resource INFO kind: ServingRuntime api version: serving.kserve.io/v1alpha1
+[QA] 2025-11-25T07:49:32.415808 ocp_resources Secret INFO Create Secret oci-registry-pull-secret
+[QA] 2025-11-25T07:49:32.416034 ocp_resources Secret INFO Posting {'apiVersion': 'v1', 'kind': 'Secret', 'metadata': {'name': 'oci-registry-pull-secret', 'namespace': 'raw-model-validation'}, 'stringData': '*******', 'type': 'kubernetes.io/dockerconfigjson'}
+[QA] 2025-11-25T07:49:32.413280 conftest INFO Executing class fixture: deployment_config
+[QA] 2025-11-25T07:49:32.413869 conftest INFO Executing class fixture: kserve_registry_pull_secret
+[QA] 2025-11-25T07:49:32.497399 ocp_resources Secret INFO Wait until Secret oci-registry-pull-secret is created
+[QA] 2025-11-25T07:49:32.497685 timeout_sampler INFO Waiting for 240 seconds [0:04:00], retry every 1 seconds. (Function: ocp_resources.resource.wait.lambda: self.exists)
+[QA] 2025-11-25T07:49:32.536569 timeout_sampler INFO Elapsed time: 0.00021529197692871094 [0:00:00.000215]
+[QA] 2025-11-25T07:49:32.537197 conftest INFO Executing class fixture: vllm_model_car_inference_service
+[QA] 2025-11-25T07:49:32.576304 ocp_resources InferenceService INFO Create InferenceService granite-3-1-8b-instr
+[QA] 2025-11-25T07:49:32.576408 ocp_resources InferenceService INFO Posting {'apiVersion': 'serving.kserve.io/v1beta1', 'kind': 'InferenceService', 'metadata': {'name': 'granite-3-1-8b-instr', 'annotations': {'serving.kserve.io/deploymentMode': 'RawDeployment'}, 'namespace': 'raw-model-validation'}, 'spec': {'predictor': {'model': {'modelFormat': {'name': 'vLLM'}, 'version': None, 'runtime': 'vllm-rawdeployment-runtime', 'storageUri': 'oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5', 'args': ['--uvicorn-log-level=info', '--max-model-len=2048', '--trust-remote-code', '--gpu-memory-utilization=0.90', '--tensor-parallel-size=1'], 'resources': {'requests': {'cpu': '2', 'memory': '15Gi', 'nvidia.com/gpu': 1}, 'limits': {'cpu': '3', 'memory': '16Gi', 'nvidia.com/gpu': 1}}}, 'imagePullSecrets': [{'name': 'oci-registry-pull-secret'}]}}}
+[QA] 2025-11-25T07:49:32.576144 ocp_resources.resource INFO kind: InferenceService api version: serving.kserve.io/v1beta1
+[QA] 2025-11-25T07:49:32.970089 timeout_sampler INFO Waiting for 30 seconds [0:00:30], retry every 1 seconds. (Function: utilities.infra.wait_for_isvc_pods  Kwargs: {'client': <kubernetes.dynamic.client.DynamicClient object at 0x7f27c5391090>, 'isvc': <ocp_resources.inference_service.InferenceService object at 0x7f27c539dbe0>, 'runtime_name': 'vllm-rawdeployment-runtime'})
+[QA] 2025-11-25T07:49:32.970450 utilities.infra INFO Waiting for pods to be created
+[QA] 2025-11-25T07:49:34.134979 timeout_sampler INFO Elapsed time: 1.0818967819213867 [0:00:01.081897]
+[QA] 2025-11-25T07:49:34.135294 utilities.infra INFO Verifying no failed pods
+[QA] 2025-11-25T07:49:34.135599 timeout_sampler INFO Waiting for 1799.999994277954 seconds [0:29:59.999994], retry every 10 seconds. (Function: utilities.infra.get_pods_by_isvc_label  Kwargs: {'client': <kubernetes.dynamic.client.DynamicClient object at 0x7f27c5391090>, 'isvc': <ocp_resources.inference_service.InferenceService object at 0x7f27c539dbe0>, 'runtime_name': 'vllm-rawdeployment-runtime'})
+[QA] 2025-11-25T07:50:55.980705 timeout_sampler INFO Elapsed time: 81.67872190475464 [0:01:21.678722]
+[QA] 2025-11-25T07:50:56.021610 timeout_sampler INFO Waiting for 1716.9484066963196 seconds [0:28:36.948407], retry every 5 seconds. (Function: ocp_resources.resource.get  Kwargs: {'label_selector': 'serving.kserve.io/inferenceservice=granite-3-1-8b-instr', 'dyn_client': <kubernetes.dynamic.client.DynamicClient object at 0x7f27c5391090>, 'namespace': 'raw-model-validation'})
+[QA] 2025-11-25T07:50:56.021811 ocp_resources.resource INFO kind: Deployment api version: apps/v1
+[QA] 2025-11-25T07:50:56.060756 timeout_sampler INFO Elapsed time: 0.00015234947204589844 [0:00:00.000152]
+[QA] 2025-11-25T07:50:56.060958 utilities.infra INFO Waiting for inference deployment replicas to complete
+[QA] 2025-11-25T07:50:56.182078 timeout_sampler INFO Waiting for 1716.788004875183 seconds [0:28:36.788005], retry every 5 seconds. (Function: utilities.infra.<locals>.lambda: deployment.instance)
+[QA] 2025-11-25T07:50:56.221175 ocp_resources Deployment INFO Wait for Deployment granite-3-1-8b-instr-predictor to be deployed: True
+[QA] 2025-11-25T07:50:56.221049 timeout_sampler INFO Elapsed time: 0.00041866302490234375 [0:00:00.000419]
+[QA] 2025-11-25T07:50:56.221242 timeout_sampler INFO Waiting for 1716.7488105297089 seconds [0:28:36.748811], retry every 1 seconds. (Function: ocp_resources.deployment.wait_for_replicas.lambda: self.exists)
+[QA] 2025-11-25T07:50:56.259044 timeout_sampler INFO Elapsed time: 5.14984130859375e-05 [0:00:00.000051]
+[QA] 2025-11-25T07:50:56.259157 timeout_sampler INFO Waiting for 1716.7108948230743 seconds [0:28:36.710895], retry every 1 seconds. (Function: ocp_resources.deployment.wait_for_replicas.lambda: self.instance)
+[QA] 2025-11-25T07:50:56.297108 ocp_resources InferenceService INFO Wait for InferenceService/granite-3-1-8b-instr's 'Ready' condition to be 'True'
+[QA] 2025-11-25T07:50:56.297403 ocp_resources InferenceService INFO Wait until InferenceService granite-3-1-8b-instr is created
+[QA] 2025-11-25T07:50:56.296969 timeout_sampler INFO Elapsed time: 5.626678466796875e-05 [0:00:00.000056]
+[QA] 2025-11-25T07:50:56.297492 timeout_sampler INFO Waiting for 1716.6728699207306 seconds [0:28:36.672870], retry every 1 seconds. (Function: ocp_resources.resource.wait.lambda: self.exists)
+[QA] 2025-11-25T07:50:56.336764 timeout_sampler INFO Elapsed time: 7.43865966796875e-05 [0:00:00.000074]
+[QA] 2025-11-25T07:50:56.336897 timeout_sampler INFO Waiting for 1716.6333842277527 seconds [0:28:36.633384], retry every 1 seconds. (Function: ocp_resources.resource.wait_for_condition.lambda: self.instance)
+[QA] 2025-11-25T07:50:56.376228 timeout_sampler INFO Elapsed time: 6.270408630371094e-05 [0:00:00.000063]
+[QA] 2025-11-25T07:50:56.416511 conftest INFO Executing function fixture: vllm_model_car_pod_resource
+[QA] 2025-11-25T07:50:56.499871 tests.model_serving.model_runtime.model_validation.test_modelvalidation INFO Sending raw inference request to vLLM model served from OCI image.
+[QA] 2025-11-25T07:50:56.497756 conftest INFO Executing function fixture: snapshot
+[QA] 2025-11-25T07:50:56.498777 conftest INFO Executing function fixture: response_snapshot
+[QA] --------------------------------------------------------- CALL ---------------------------------------------------------
+[QA] 2025-11-25T07:50:56.539006 tests.model_serving.model_runtime.utils INFO Running text inference test
+[QA] 2025-11-25T07:50:56.578665 tests.model_serving.model_runtime.utils INFO audio_inference:start endpoint=openai pod=granite-3-1-8b-instr-predictor-6cdf86c74d-zbqp5
+[QA] 2025-11-25T07:50:57.035181 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:50:59.649309 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:50:59.649913 utilities.plugins.openai_plugin INFO {'index': 0, 'text': '\n\n1. Environmental Impact: Renewable energy sources, such as solar, wind, hydro, and geothermal, produce little to no greenhouse gas emissions during operation, reducing their contribution to climate change. Fossil fuels, on the other hand, release significant amounts of carbon dioxide, methane, and other harmful pollutants when burned, leading to air pollution, acid rain, and health issues.\n\n2', 'logprobs': None, 'finish_reason': 'length', 'stop_reason': None, 'token_ids': None, 'prompt_logprobs': None, 'prompt_token_ids': None}
+[QA] 2025-11-25T07:51:02.302466 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:51:02.302838 utilities.plugins.openai_plugin INFO {'index': 0, 'text': "\n\nSpanish: El conocimiento es poder.\nGerman: Wissen ist Macht.\nMandarin: 知识就是力量。(Zhīshì jiù shì lìliàng.)\n\nNow, let's break down the translation process for each language:\n\n1. Spanish:\n   - 'Knowledge' is translated as 'conocimiento' (noun).\n   - 'is' is translated as 'es' (", 'logprobs': None, 'finish_reason': 'length', 'stop_reason': None, 'token_ids': None, 'prompt_logprobs': None, 'prompt_token_ids': None}
+[QA] 2025-11-25T07:51:04.901194 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:51:04.901473 utilities.plugins.openai_plugin INFO {'index': 0, 'text': "\n\nIn the velvet canvas of the night,\nA celestial ballet takes flight.\nStars, like diamonds, scattered wide,\nIn the cosmic theater, they confide.\n\nThe moon, a silver orb in the dark,\nIlluminates the world's heart.\nHer gentle glow, a soothing balm,\nIn her presence, we find calm.\n\nGalaxies swirl in a", 'logprobs': None, 'finish_reason': 'length', 'stop_reason': None, 'token_ids': None, 'prompt_logprobs': None, 'prompt_token_ids': None}
+[QA] 2025-11-25T07:51:07.519214 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:51:07.519484 utilities.plugins.openai_plugin INFO {'index': 0, 'text': '\n\nThe Great Wall of China, a series of fortifications made of stone, brick, tamped earth, wood, and other materials, generally built along an east-to-west line across the historical northern borders of China to protect the Chinese states and empires against raids and invasions of the various nomadic groups of the Eurasian Steppe.\n\nHistorical Significance:\n1. Defense: The primary purpose of the Great Wall was', 'logprobs': None, 'finish_reason': 'length', 'stop_reason': None, 'token_ids': None, 'prompt_logprobs': None, 'prompt_token_ids': None}
+[QA] 2025-11-25T07:51:10.196572 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:51:10.196884 utilities.plugins.openai_plugin INFO {'index': 0, 'text': '\n\n# Ethical Implications of Artificial Intelligence in Healthcare Decision-Making\n\n## Abstract\n\nThis paper delves into the ethical implications of incorporating artificial intelligence (AI) in healthcare decision-making, focusing on aspects such as patient autonomy, data privacy, and algorithmic bias. As AI technology continues to advance and permeate the medical field, understanding and addressing these ethical concerns is paramount to ensuring responsible and equit', 'logprobs': None, 'finish_reason': 'length', 'stop_reason': None, 'token_ids': None, 'prompt_logprobs': None, 'prompt_token_ids': None}
+[QA] 2025-11-25T07:51:12.787574 utilities.plugins.openai_plugin INFO <Response [200]>
+[QA] 2025-11-25T07:51:12.787897 utilities.plugins.openai_plugin INFO {'index': 0, 'text': '\n\nThe Apollo 11 mission, launched by NASA on July 16, 1969, marked a significant milestone in human space exploration. The main events of this historic event are as follows:\n\n1. Launch: The Saturn V rocket carrying astronauts Neil Armstrong, Buzz Aldrin, and Michael Collins blasted off from Kennedy Space Center in Florida.\n\n2. Lun', 'logprobs': None, 'finish_reason': 'length', 'stop_reason': None, 'token_ids': None, 'prompt_logprobs': None, 'prompt_token_ids': None}
+[QA] PASSED2025-11-25T07:51:12.792298 ocp_resources InferenceService INFO Delete InferenceService granite-3-1-8b-instr
+[QA] 
+[QA] TEST: TestVLLMModelCarRaw.test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw] STATUS: PASSED
+[QA] ------------------------------------------------------- TEARDOWN -------------------------------------------------------
+[QA] 2025-11-25T07:51:12.870773 ocp_resources InferenceService INFO Deleting {'apiVersion': 'serving.kserve.io/v1beta1', 'kind': 'InferenceService', 'metadata': {'annotations': {'serving.kserve.io/deploymentMode': 'RawDeployment'}, 'creationTimestamp': '2025-11-25T07:49:33Z', 'finalizers': ['inferenceservice.finalizers', 'odh.inferenceservice.finalizers'], 'generation': 1, 'managedFields': [{'apiVersion': 'serving.kserve.io/v1beta1', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:metadata': {'f:annotations': {'.': {}, 'f:serving.kserve.io/deploymentMode': {}}}, 'f:spec': {'.': {}, 'f:predictor': {'.': {}, 'f:imagePullSecrets': {}, 'f:model': {'.': {}, 'f:args': {}, 'f:modelFormat': {'.': {}, 'f:name': {}}, 'f:resources': {'.': {}, 'f:limits': {'.': {}, 'f:cpu': {}, 'f:memory': {}, 'f:nvidia.com/gpu': {}}, 'f:requests': {'.': {}, 'f:cpu': {}, 'f:memory': {}, 'f:nvidia.com/gpu': {}}}, 'f:runtime': {}, 'f:storageUri': {}}}}}, 'manager': 'OpenAPI-Generator', 'operation': 'Update', 'time': '2025-11-25T07:49:33Z'}, {'apiVersion': 'serving.kserve.io/v1beta1', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:metadata': {'f:finalizers': {'.': {}, 'v:"inferenceservice.finalizers"': {}, 'v:"odh.inferenceservice.finalizers"': {}}}}, 'manager': 'manager', 'operation': 'Update', 'time': '2025-11-25T07:49:33Z'}, {'apiVersion': 'serving.kserve.io/v1beta1', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:status': {'.': {}, 'f:address': {'.': {}, 'f:url': {}}, 'f:components': {'.': {}, 'f:predictor': {}}, 'f:conditions': {}, 'f:deploymentMode': {}, 'f:modelStatus': {'.': {}, 'f:copies': {'.': {}, 'f:failedCopies': {}, 'f:totalCopies': {}}, 'f:states': {'.': {}, 'f:activeModelState': {}, 'f:targetModelState': {}}, 'f:transitionStatus': {}}, 'f:observedGeneration': {}, 'f:url': {}}}, 'manager': 'manager', 'operation': 'Update', 'subresource': 'status', 'time': '2025-11-25T07:50:55Z'}], 'name': 'granite-3-1-8b-instr', 'namespace': 'raw-model-validation', 'resourceVersion': '2344909', 'uid': 'aebf519e-9287-4faa-9d41-3b32a6573877'}, 'spec': {'predictor': {'automountServiceAccountToken': False, 'imagePullSecrets': [{'name': 'oci-registry-pull-secret'}], 'model': {'args': ['--uvicorn-log-level=info', '--max-model-len=2048', '--trust-remote-code', '--gpu-memory-utilization=0.90', '--tensor-parallel-size=1'], 'modelFormat': {'name': 'vLLM'}, 'name': '', 'resources': {'limits': {'cpu': '3', 'memory': '16Gi', 'nvidia.com/gpu': '1'}, 'requests': {'cpu': '2', 'memory': '15Gi', 'nvidia.com/gpu': '1'}}, 'runtime': 'vllm-rawdeployment-runtime', 'storageUri': 'oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5'}}}, 'status': {'address': {'url': 'http://granite-3-1-8b-instr-predictor.raw-model-validation.svc.cluster.local'}, 'components': {'predictor': {}}, 'conditions': [{'lastTransitionTime': '2025-11-25T07:49:33Z', 'status': 'True', 'type': 'IngressReady'}, {'lastTransitionTime': '2025-11-25T07:50:55Z', 'status': 'True', 'type': 'PredictorReady'}, {'lastTransitionTime': '2025-11-25T07:50:55Z', 'status': 'True', 'type': 'Ready'}, {'lastTransitionTime': '2025-11-25T07:49:33Z', 'severity': 'Info', 'status': 'False', 'type': 'Stopped'}], 'deploymentMode': 'RawDeployment', 'modelStatus': {'copies': {'failedCopies': 0, 'totalCopies': 1}, 'states': {'activeModelState': 'Loaded', 'targetModelState': 'Loaded'}, 'transitionStatus': 'UpToDate'}, 'observedGeneration': 1, 'url': 'http://granite-3-1-8b-instr-predictor.raw-model-validation.svc.cluster.local'}}
+[QA] 2025-11-25T07:51:12.932704 ocp_resources InferenceService INFO Wait until InferenceService granite-3-1-8b-instr is deleted
+[QA] 2025-11-25T07:51:12.933023 timeout_sampler INFO Waiting for 240 seconds [0:04:00], retry every 1 seconds. (Function: ocp_resources.resource.wait_deleted.lambda: self.exists)
+[QA] 2025-11-25T07:51:14.019814 ocp_resources Secret INFO Delete Secret oci-registry-pull-secret
+[QA] 2025-11-25T07:51:14.019649 timeout_sampler INFO Elapsed time: 1.0452542304992676 [0:00:01.045254]
+[QA] 2025-11-25T07:51:14.100150 ocp_resources Secret INFO Deleting {'kind': 'Secret', 'apiVersion': 'v1', 'metadata': {'name': 'oci-registry-pull-secret', 'namespace': 'raw-model-validation', 'uid': '7e3d5e09-7bad-4545-9e35-e98a02ad8ae5', 'resourceVersion': '2344120', 'creationTimestamp': '2025-11-25T07:49:33Z', 'managedFields': [{'manager': 'OpenAPI-Generator', 'operation': 'Update', 'apiVersion': 'v1', 'time': '2025-11-25T07:49:33Z', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:data': {'.': {}, 'f:.dockerconfigjson': {}, 'f:ACCESS_TYPE': {}, 'f:OCI_HOST': {}}, 'f:type': {}}}]}, 'data': '*******', 'type': 'kubernetes.io/dockerconfigjson'}
+[QA] 2025-11-25T07:51:14.146391 ocp_resources Secret INFO Wait until Secret oci-registry-pull-secret is deleted
+[QA] 2025-11-25T07:51:14.146740 timeout_sampler INFO Waiting for 240 seconds [0:04:00], retry every 1 seconds. (Function: ocp_resources.resource.wait_deleted.lambda: self.exists)
+[QA] 2025-11-25T07:51:14.188656 ocp_resources ServingRuntime INFO Delete ServingRuntime vllm-rawdeployment-runtime
+[QA] 2025-11-25T07:51:14.188260 timeout_sampler INFO Elapsed time: 0.00025963783264160156 [0:00:00.000260]
+[QA] 2025-11-25T07:51:14.267700 ocp_resources ServingRuntime INFO Deleting {'apiVersion': 'serving.kserve.io/v1alpha1', 'kind': 'ServingRuntime', 'metadata': {'annotations': {'opendatahub.io/recommended-accelerators': '["nvidia.com/gpu"]', 'opendatahub.io/runtime-version': 'v0.9.1.0', 'openshift.io/display-name': 'vLLM NVIDIA GPU ServingRuntime for KServe'}, 'creationTimestamp': '2025-11-25T07:49:32Z', 'generation': 1, 'labels': {'opendatahub.io/dashboard': 'true'}, 'managedFields': [{'apiVersion': 'serving.kserve.io/v1alpha1', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:metadata': {'f:annotations': {'.': {}, 'f:opendatahub.io/recommended-accelerators': {}, 'f:opendatahub.io/runtime-version': {}, 'f:openshift.io/display-name': {}}, 'f:labels': {'.': {}, 'f:opendatahub.io/dashboard': {}}}, 'f:spec': {'.': {}, 'f:annotations': {'.': {}, 'f:opendatahub.io/kserve-runtime': {}, 'f:prometheus.io/path': {}, 'f:prometheus.io/port': {}}, 'f:containers': {}, 'f:multiModel': {}, 'f:supportedModelFormats': {}}}, 'manager': 'OpenAPI-Generator', 'operation': 'Update', 'time': '2025-11-25T07:49:32Z'}], 'name': 'vllm-rawdeployment-runtime', 'namespace': 'raw-model-validation', 'resourceVersion': '2344119', 'uid': '8ded94f4-2ea2-46d1-8fb6-77075c952c2e'}, 'spec': {'annotations': {'opendatahub.io/kserve-runtime': 'vllm', 'prometheus.io/path': '/metrics', 'prometheus.io/port': '8080'}, 'containers': [{'args': ['--port=8080', '--model=/mnt/models', '--served-model-name={{.Name}}'], 'command': ['python', '-m', 'vllm.entrypoints.openai.api_server'], 'env': [{'name': 'HF_HOME', 'value': '/tmp/hf_home'}], 'image': 'registry.redhat.io/rhaiis/vllm-cuda-rhel9@sha256:ad756c01ec99a99cc7d93401c41b8d92ca96fb1ab7c5262919d818f2be4f3768', 'name': 'kserve-container', 'ports': [{'containerPort': 8080, 'protocol': 'TCP'}]}], 'multiModel': False, 'supportedModelFormats': [{'autoSelect': True, 'name': 'vLLM'}]}}
+[QA] 2025-11-25T07:51:14.313166 ocp_resources ServingRuntime INFO Wait until ServingRuntime vllm-rawdeployment-runtime is deleted
+[QA] 2025-11-25T07:51:14.313515 timeout_sampler INFO Waiting for 240 seconds [0:04:00], retry every 1 seconds. (Function: ocp_resources.resource.wait_deleted.lambda: self.exists)
+[QA] 2025-11-25T07:51:14.355340 timeout_sampler INFO Elapsed time: 0.0002472400665283203 [0:00:00.000247]
+[QA] 2025-11-25T07:51:14.475162 ocp_resources Namespace INFO Delete Namespace raw-model-validation
+[QA] 2025-11-25T07:51:14.554244 ocp_resources Namespace INFO Deleting {'kind': 'Namespace', 'apiVersion': 'v1', 'metadata': {'name': 'raw-model-validation', 'uid': 'e5317e9b-ad3b-4ba5-bcd6-4791d6922e02', 'resourceVersion': '2344096', 'creationTimestamp': '2025-11-25T07:49:32Z', 'labels': {'kubernetes.io/metadata.name': 'raw-model-validation', 'pod-security.kubernetes.io/audit': 'restricted', 'pod-security.kubernetes.io/audit-version': 'latest', 'pod-security.kubernetes.io/warn': 'restricted', 'pod-security.kubernetes.io/warn-version': 'latest'}, 'annotations': {'openshift.io/sa.scc.mcs': 's0:c30,c10', 'openshift.io/sa.scc.supplemental-groups': '1000890000/10000', 'openshift.io/sa.scc.uid-range': '1000890000/10000', 'security.openshift.io/MinimallySufficientPodSecurityStandard': 'restricted'}, 'managedFields': [{'manager': 'pod-security-admission-label-synchronization-controller', 'operation': 'Apply', 'apiVersion': 'v1', 'time': '2025-11-25T07:49:32Z', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:metadata': {'f:annotations': {'f:security.openshift.io/MinimallySufficientPodSecurityStandard': {}}, 'f:labels': {'f:pod-security.kubernetes.io/audit': {}, 'f:pod-security.kubernetes.io/audit-version': {}, 'f:pod-security.kubernetes.io/warn': {}, 'f:pod-security.kubernetes.io/warn-version': {}}}}}, {'manager': 'OpenAPI-Generator', 'operation': 'Update', 'apiVersion': 'v1', 'time': '2025-11-25T07:49:32Z', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:metadata': {'f:labels': {'.': {}, 'f:kubernetes.io/metadata.name': {}}}}}, {'manager': 'cluster-policy-controller', 'operation': 'Update', 'apiVersion': 'v1', 'time': '2025-11-25T07:49:32Z', 'fieldsType': 'FieldsV1', 'fieldsV1': {'f:metadata': {'f:annotations': {'.': {}, 'f:openshift.io/sa.scc.mcs': {}, 'f:openshift.io/sa.scc.supplemental-groups': {}, 'f:openshift.io/sa.scc.uid-range': {}}}}}]}, 'spec': {'finalizers': ['kubernetes']}, 'status': {'phase': 'Active'}}
+[QA] 2025-11-25T07:51:14.600291 ocp_resources Namespace INFO Wait until Namespace raw-model-validation is deleted
+[QA] 2025-11-25T07:51:14.600611 timeout_sampler INFO Waiting for 240 seconds [0:04:00], retry every 1 seconds. (Function: ocp_resources.resource.wait_deleted.lambda: self.exists)
+[QA] 2025-11-25T07:51:21.929804 timeout_sampler INFO Elapsed time: 7.286143064498901 [0:00:07.286143]
+[QA] 
+[QA] _ 1 of 1 completed, 1 Pass, 0 Fail, 0 Skip, 0 XPass, 0 XFail, 0 Error, 0 ReRun _
+[QA] ================== 1 passed, 11 warnings in 123.34s (0:02:03) ==================
+[QA] 
+[QA] =============================== warnings summary ===============================
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA]   /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]     warnings.warn(
+[QA] 
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA]   /home/odh/opendatahub-tests/utilities/infra.py:1185: DeprecationWarning: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.
+[QA]     tar_file.extractall(path=tmpdir)
+[QA] 
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA] tests/model_serving/model_runtime/model_validation/test_modelvalidation.py::TestVLLMModelCarRaw::test_oci_model_car_raw_openai_inference[granite-3.1-8b-instruct-raw]
+[QA]   /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/exceptions.py:91: DeprecationWarning: HTTPResponse.getheaders() is deprecated and will be removed in urllib3 v2.1.0. Instead access HTTPResponse.headers directly.
+[QA]     self.headers = http_resp.getheaders()
+[QA] 
+[QA] -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+[QA] --------------------------- snapshot report summary ----------------------------
+[QA] 1 snapshot generated.
+[QA] ================== 1 passed, 11 warnings in 123.34s (0:02:03) ==================
+[QA] ODH tests completed successfully.
+
+### Configuration Summary
+Based on the report from the Configuration Specialist, the model-car specifies the following:
+- **Model:** `granite-3.1-8b-instruct`
+- **Estimated VRAM:** 18 GB
+
+### Accelerator Summary
+The Accelerator Specialist reported that the cluster environment is healthy and has available GPUs:
+- **Status:** GPU available
+- **Provider:** NVIDIA
+
+### Deployment Decision
+The Decision Specialist issued a **GO** verdict for deployment.
+- **Capacity:** The model's estimated 18GB VRAM requirement is well within the capacity of the available NVIDIA GPUs (45GB).
+- **Serving Arguments:** The specialist recommended optimized serving arguments for a single-GPU deployment. These arguments, including setting `tensor-parallel-size=1` and `gpu-memory-utilization=0.90`, were successfully applied back to the model-car configuration by the Configuration Specialist.
+
+### QA Validation
+The QA Specialist ran the OpenDataHub model validation test suite against the optimized configuration.
+- **Result:** PASSED
+- **Details:** The test suite successfully deployed the model, performed inference, and confirmed its operational readiness. One test passed, and zero tests failed.

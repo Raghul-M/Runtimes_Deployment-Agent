@@ -1,2 +1,3 @@
 export GEMINI_API_KEY="your_actual_api_key_here"
 export OCI_REGISTRY_PULL_SECRET="your_actual_pull_secret_here"
+export VLLM_RUNTIME_IMAGE="quay.io/modh/vllm@sha256:db766445a1e3455e1bf7d16b008f8946fcbe9f277377af7abb81ae358805e7e2"
