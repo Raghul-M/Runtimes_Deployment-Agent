@@ -73,11 +73,11 @@ def build_accelerator_specialist(
             {
             "gpu_available": true,
             "gpu_provider": "NVIDIA",
-            "servingruntime_image": "quay.io/rh-mlops/vllm-spyre-x86:latest"
+            "vllm_image": "quay.io/opendatahub/vllm-cuda-runtime:latest"
             }
         """
         gpu_status, gpu_provider = check_gpu_availability()
-        vllm_image = get_vllm_runtime_image_from_template(template_name=template_name)
+        vllm_image = get_vllm_runtime_image_from_template()
         
         metadata = {
             "gpu_available": gpu_status,
@@ -127,7 +127,7 @@ def build_accelerator_specialist(
         if gpu_provider == "NVIDIA":
             result += "\nCompatibility Notes:\n"
             result += "- CUDA-compatible models are supported\n"
-            result += "- vLLM-Spyre-x86 compatibility available\n"
+            result += "- vLLM compatibility available\n"
         elif gpu_provider == "AMD":
             result += "\nCompatibility Notes:\n"
             result += "- ROCm-compatible models are supported\n"

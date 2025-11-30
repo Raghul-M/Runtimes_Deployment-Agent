@@ -348,9 +348,7 @@ def get_amd_gpu_details():
     except Exception as e:
         return f"Error getting AMD GPU details: {str(e)}\n"
     
-def get_vllm_runtime_image_from_template(
-    template_name: str = "vllm-cuda-runtime-template"
-) -> str:
+def get_vllm_runtime_image_from_template() -> str:
     """
     Return the vLLM runtime container image from an OpenShift Template.
 
@@ -366,7 +364,7 @@ def get_vllm_runtime_image_from_template(
         "oc",
         "get",
         "template",
-        template_name,
+        "vllm-cuda-runtime-template",
         "-n",
         "redhat-ods-applications",
         "-o",
@@ -382,20 +380,20 @@ def get_vllm_runtime_image_from_template(
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(
-            f"Failed to get template {template_name} in redhat-ods-applications: {e.stderr or e.stdout}"
+            f"Failed to get template vllm-cuda-runtime-template in redhat-ods-applications: {e.stderr or e.stdout}"
         ) from e
 
     try:
         data = json.loads(completed.stdout)
     except json.JSONDecodeError as e:
         raise RuntimeError(
-            f"Failed to parse JSON from oc output for template {template_name}: {e}"
+            f"Failed to parse JSON from oc output for template vllm-cuda-runtime-template: {e}"
         ) from e
 
     objects = data.get("objects") or []
     if not objects:
         raise RuntimeError(
-            f"Template {template_name} in redhat-ods-applications has no objects field."
+            f"Template vllm-cuda-runtime-template in redhat-ods-applications has no objects field."
         )
 
     sr = objects[0]
@@ -403,13 +401,13 @@ def get_vllm_runtime_image_from_template(
     containers = spec.get("containers") or []
     if not containers:
         raise RuntimeError(
-            f"ServingRuntime in template {template_name} has no spec.containers."
+            f"ServingRuntime in template vllm-cuda-runtime-template has no spec.containers."
         )
 
     image = containers[0].get("image")
     if not image:
         raise RuntimeError(
-            f"First container in template {template_name} has no image field."
+            f"First container in template vllm-cuda-runtime-template has no image field."
         )
 
     return image
