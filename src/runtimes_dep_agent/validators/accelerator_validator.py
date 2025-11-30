@@ -347,6 +347,73 @@ def get_amd_gpu_details():
         
     except Exception as e:
         return f"Error getting AMD GPU details: {str(e)}\n"
+    
+def get_vllm_runtime_image_from_template(
+    template_name: str = "vllm-cuda-runtime-template"
+) -> str:
+    """
+    Return the vLLM runtime container image from an OpenShift Template.
+
+    It expects a Template like `vllm-cuda-runtime-template` that contains a
+    single ServingRuntime in `objects[0]` and reads:
+
+      objects[0].spec.containers[0].image
+
+    Raises:
+        RuntimeError if the template or container/image cannot be resolved.
+    """
+    cmd = [
+        "oc",
+        "get",
+        "template",
+        template_name,
+        "-n",
+        "redhat-ods-applications",
+        "-o",
+        "json",
+    ]
+
+    try:
+        completed = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"Failed to get template {template_name} in redhat-ods-applications: {e.stderr or e.stdout}"
+        ) from e
+
+    try:
+        data = json.loads(completed.stdout)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(
+            f"Failed to parse JSON from oc output for template {template_name}: {e}"
+        ) from e
+
+    objects = data.get("objects") or []
+    if not objects:
+        raise RuntimeError(
+            f"Template {template_name} in redhat-ods-applications has no objects field."
+        )
+
+    sr = objects[0]
+    spec = sr.get("spec") or {}
+    containers = spec.get("containers") or []
+    if not containers:
+        raise RuntimeError(
+            f"ServingRuntime in template {template_name} has no spec.containers."
+        )
+
+    image = containers[0].get("image")
+    if not image:
+        raise RuntimeError(
+            f"First container in template {template_name} has no image field."
+        )
+
+    return image
+
 
 
 # Test the functions

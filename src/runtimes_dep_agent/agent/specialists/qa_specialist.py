@@ -149,9 +149,6 @@ def build_qa_specialist(
             msg = f"QA_ERROR:UNEXPECTED {e}"
             print(f"[QA] {msg}", flush=True)
             return msg
-        # Optional cleanup:
-        # finally:
-        #     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     prompt = (
         "You are a QA Specialist responsible for validating machine learning model deployments "
