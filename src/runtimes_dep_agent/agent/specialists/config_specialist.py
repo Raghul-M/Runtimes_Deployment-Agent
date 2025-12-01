@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from time import time
 from typing import Callable
 
 from langchain.agents import create_agent
@@ -43,41 +44,58 @@ def build_config_specialist(
     @tool
     def generate_optimal_serving_arguments(optimized_args_json: str) -> str:
         """
-        Update the modelcar.yaml on disk with optimized serving arguments.
+        Create a *new* modelcar YAML from a base version with optimized serving arguments.
 
-        Expected JSON structure:
+        Accepts EITHER:
         {
-        "model_name": "granite-3.1-8b-instruct",
-        "serving_arguments": {
-            "args": [
-            "--uvicorn-log-level=info",
-            "--max-model-len=2048",
-            "--trust-remote-code",
-            "--tensor-parallel-size=1"
-            ]
+            "model_name": "granite-3.1-8b-instruct",
+            "serving_arguments": { ... }
         }
-        }
+        OR:
+        [
+            {
+            "model_name": "...",
+            "serving_arguments": { ... }
+            },
+            ...
+        ]
 
-        - model_name: name of the target model in the `model-car` list.
-        - serving_arguments: dict to merge into that model's serving_arguments.
+        Behavior:
+        - Uses `config-yaml/sample_modelcar_config.base.yaml` as base if it exists,
+        otherwise falls back to `config-yaml/sample_modelcar_config.yaml`.
+        - Writes the updated config to:
+            `config-yaml/sample_modelcar_config.generated.yaml`
+        without mutating the base file.
+        - For each object, only updates the matching `model-car` entry.
         """
-        modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
-        if not modelcar_path.exists():
-            return f"Error: model-car configuration file not found at {modelcar_path}."
+        base_path_primary = Path("config-yaml/sample_modelcar_config.base.yaml")
+        base_path_fallback = Path("config-yaml/sample_modelcar_config.yaml")
+        output_path = Path("config-yaml/sample_modelcar_config.generated.yaml")
+
+        if base_path_primary.exists():
+            modelcar_path = base_path_primary
+        elif base_path_fallback.exists():
+            modelcar_path = base_path_fallback
+        else:
+            return (
+                "Error: No base model-car configuration file found. "
+                f"Expected either {base_path_primary} or {base_path_fallback}."
+            )
 
         try:
-            overrides = json.loads(optimized_args_json)
+            overrides_obj = json.loads(optimized_args_json)
         except json.JSONDecodeError:
             return "Error: Provided serving arguments are not valid JSON."
 
-        target_name = overrides.get("model_name")
-        sa_overrides = overrides.get("serving_arguments") or {}
-
-        if not target_name:
-            return "Error: optimized JSON is missing 'model_name'."
-        if not sa_overrides:
-            return "No serving arguments provided to update."
-
+        if isinstance(overrides_obj, dict):
+            overrides_list = [overrides_obj]
+        elif isinstance(overrides_obj, list):
+            overrides_list = overrides_obj
+        else:
+            return (
+                "Error: Expected a JSON object or a list of objects with "
+                "'model_name' and 'serving_arguments'."
+            )
         with open(modelcar_path, "r") as f:
             cfg = yaml.safe_load(f) or {}
 
@@ -87,38 +105,74 @@ def build_config_specialist(
         elif isinstance(model_car_block, list):
             model_list = model_car_block
         else:
-            return "Error: 'model-car' section is not a dict or list; cannot apply overrides."
+            return (
+                "Error: 'model-car' section is not a dict or list; "
+                "cannot apply overrides."
+            )
 
-        updated_any = False
-        for entry in model_list:
-            if not isinstance(entry, dict):
+        updated_models: list[str] = []
+
+        for overrides in overrides_list:
+            if not isinstance(overrides, dict):
                 continue
 
-            if entry.get("name") != target_name:
+            target_name = overrides.get("model_name")
+            sa_overrides = overrides.get("serving_arguments") or {}
+
+            if not target_name or not sa_overrides:
                 continue
 
-            if "serving_arguments" not in entry or not isinstance(entry["serving_arguments"], dict):
-                entry["serving_arguments"] = {}
+            for entry in model_list:
+                if not isinstance(entry, dict):
+                    continue
 
-            entry["serving_arguments"].update(sa_overrides)
-            updated_any = True
-            break
+                if entry.get("name") != target_name:
+                    continue
 
-        if not updated_any:
-            return f"No model-car entry matched model_name '{target_name}'."
+                if "serving_arguments" not in entry or not isinstance(entry["serving_arguments"], dict):
+                    entry["serving_arguments"] = {}
+
+                entry["serving_arguments"].update(sa_overrides)
+                updated_models.append(target_name)
+                break
+
+        if not updated_models:
+            return (
+                "No model-car entries were updated. Check that 'model_name' values "
+                "match the names in the model-car config."
+            )
 
         if isinstance(model_car_block, dict):
             cfg["model-car"] = model_list[0]
         else:
             cfg["model-car"] = model_list
 
-        if "serving_arguments" in cfg:
-            cfg.pop("serving_arguments")
+        cfg.pop("serving_arguments", None)
 
-        with open(modelcar_path, "w") as f:
-            yaml.safe_dump(cfg, f)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w") as f:
+            yaml.safe_dump(
+                cfg,
+                f,
+                sort_keys=False,  # keep order sane
+                default_flow_style=False,
+            )
 
-        return f"Updated serving arguments for model '{target_name}' in {modelcar_path}."
+        updated_str = ", ".join(sorted(set(updated_models)))
+        
+        if not output_path.exists():
+            time.sleep(1)
+            if not output_path.exists():
+                return (
+                    "Error: Failed to write updated model-car configuration to "
+                    f"{output_path}."
+                )
+        
+        return (
+            f"Updated serving arguments for model(s): {updated_str}. "
+            f"Generated config: {output_path}"
+        )
+
             
     prompt = """
         You are the Configuration Specialist.
@@ -151,7 +205,7 @@ def build_config_specialist(
 
         Output Requirements:
         - For configuration reports, provide a clean and concise summary:
-            - model names
+            - model names of each preloaded model
             - image size (GB)
             - parameter counts
             - quantization bits

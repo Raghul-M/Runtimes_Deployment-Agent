@@ -7,7 +7,7 @@
 
 ![Supervisor Diagram](supervisor-diagram.png)
 
-Supervisor-driven orchestration for analysing model-car configurations. The tool follows LangChain’s [supervisor pattern](https://docs.langchain.com/oss/python/langchain/supervisor), combining a primary LLM with a configuration specialist that understands Red Hat “model-car” manifests and the container images they reference.
+Supervisor-driven orchestration for analysing model-car configurations and validating them end-to-end. The tool follows LangChain’s [supervisor pattern](https://docs.langchain.com/oss/python/langchain/supervisor), combining a primary LLM with configuration + accelerator + decision specialists and a QA runner that understands Red Hat “model-car” manifests and the container images they reference.
 
 ## Features
 
@@ -16,7 +16,9 @@ Supervisor-driven orchestration for analysing model-car configurations. The tool
 - **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, parameter/quantization hints from model names, and estimates per-model VRAM.
 - **Accelerator specialist** – checks OpenShift authentication, enumerates GPUs, and writes a detailed `gpu_info/gpu_info.txt` report (provider, instance type, per-GPU VRAM).
 - **Decision specialist** – reads the cached requirements plus `gpu_info/gpu_info.txt`, compares each model’s VRAM requirement to the per-GPU memory, and issues a GO/NO-GO verdict.
+- **Serving-argument optimizer** – when the Decision Specialist emits `OPTIMIZED_SERVING_ARGUMENTS_JSON`, the Configuration Specialist applies it to `config-yaml/sample_modelcar_config.base.yaml` and writes the merged result to `config-yaml/sample_modelcar_config.generated.yaml` so QA/testing reuse the tuned flags without mutating the base template.
 - **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model; reports image size separately from VRAM.
+- **QA specialist** – stages your kubeconfig + OCI pull secret, launches the official `quay.io/opendatahub/opendatahub-tests:latest` container with Podman, streams `[QA]` logs, and reports `QA_OK` / `QA_ERROR:<reason>` back to the supervisor output.
 - **Checklist-style responses** – specialists start with a short checklist of the steps they are taking before returning the report/results.
 - **Config bootstrap** – pass a bootstrap file at agent creation time so repeated prompts reuse cached requirements.
 
@@ -25,6 +27,8 @@ Supervisor-driven orchestration for analysing model-car configurations. The tool
 - Python **3.12+**
 - A Google Gemini API key (`GEMINI_API_KEY`) for `langchain-google-genai`
 - `skopeo` available on `PATH` (for container metadata; falls back gracefully if missing)
+- `podman` available on `PATH` (to run the QA container; required if you want the QA specialist to execute)
+- Environment for QA: set `OCI_REGISTRY_PULL_SECRET` (base64 string for registry.redhat.io), ensure `KUBECONFIG` points to a reachable OpenShift cluster (defaults to `~/.kube/config`), and optionally set `VLLM_RUNTIME_IMAGE` if you want to override the runtime passed to ODH tests
 - Dependencies listed in `pyproject.toml`
 
 ## Installation
@@ -42,9 +46,14 @@ pip install -e .
 ```bash
 export GEMINI_API_KEY="your-key-here"
 
-# Inspect the bundled sample configuration
-agent --config config-yaml/sample_modelcar_config.yaml
+# Inspect the bundled base configuration (never overwritten)
+agent --config config-yaml/sample_modelcar_config.base.yaml
+
+# After optimized serving arguments are applied you can re-run against the generated overlay
+agent --config config-yaml/sample_modelcar_config.generated.yaml
 ```
+
+The CLI still defaults to `config-yaml/sample_modelcar_config.yaml`; pass `--config` explicitly to use either the immutable base template or the generated overlay the supervisor produces when it optimises serving arguments. The generated file lives alongside the base YAML so you can diff, commit, or hand the tuned parameters back to an operator.
 
 The command prints a **Configuration** section containing the parsed model requirements, including container size, estimated VRAM (based on parameters/quantization parsed from the model name), and supported architecture. Example snippet:
 
@@ -72,10 +81,10 @@ The command prints a **Configuration** section containing the parsed model requi
 ### Sample run (with checklists and decision step)
 
 ```
-agent --config config-yaml/sample_modelcar_config.yaml
+agent --config config-yaml/sample_modelcar_config.base.yaml
 ```
 
-Produces three sections:
+Produces four sections:
 
 - Configuration
   - [x] Load cached requirements
@@ -94,6 +103,44 @@ Produces three sections:
   - [x] Read GPU info file
   - [x] Compare VRAM needs vs per-GPU memory (e.g., `model VRAM 18 GB vs GPU 80 GB`)
   - [x] Issue GO/NO-GO recommendation with justification
+- QA Validation
+  - [x] Stage kubeconfig + OCI pull secret into a temporary directory
+  - [x] Copy `config-yaml/sample_modelcar_config.generated.yaml` into the QA container
+  - [x] Launch `quay.io/opendatahub/opendatahub-tests:latest` with Podman and stream `[QA] …` logs
+  - [x] Summarize the run with `QA_OK` or `QA_ERROR:<reason>` plus remediation guidance
+
+Example supervisor transcript (captured in `demo-logs/success-log-example4.log`):
+
+```markdown
+### Configuration Summary
+The Configuration Specialist reported on four models preloaded in the model-car, with a total estimated VRAM requirement of 22 GB. The primary model for this assessment, `Llama-3.1-8B-Instruct`, requires an estimated 18 GB of VRAM.
+
+### Accelerator Summary
+The Accelerator Specialist confirmed that the cluster is healthy and accessible. Authentication was successful, and the cluster has NVIDIA GPUs available that are compatible with CUDA and vLLM, meeting the deployment requirements.
+
+### Deployment Decision
+The Decision Specialist has issued a **GO** for this deployment.
+
+The specialist's reasoning is as follows:
+- **GPU Capacity**: The available GPU VRAM (44.99 GB) is sufficient to meet the model's estimated requirement of 18 GB.
+- **Serving-argument Suitability**: The initial serving arguments were found to be suboptimal for a single-GPU environment. The Decision Specialist recommended removing an unnecessary distributed executor flag and explicitly setting `tensor_parallel_size=1`.
+- **Environment / Access Health**: The Accelerator Specialist reported no authentication or connectivity failures.
+
+Based on the specialist's recommendation, the optimized serving arguments were written back to the model-car configuration by the Configuration Specialist. The applied optimization was:
+```json
+{
+  "args": [
+    "--uvicorn-log-level=debug",
+    "--max-model-len=1024",
+    "--trust-remote-code",
+    "--tensor-parallel-size=1"
+  ]
+}
+```
+
+### QA Validation
+The QA Specialist ran the Opendatahub model validation test suite against the updated configuration. The result was a **PASS**, with all 4 validation tests completing successfully. This confirms that the model serving deployments are correctly configured and operational.
+```
 
 A typical end-to-end response therefore concludes with something like:
 
@@ -103,10 +150,45 @@ A typical end-to-end response therefore concludes with something like:
 > - Comparison: `model VRAM 18 GB vs GPU 80 GB`
 > - **GO**: one GPU is enough, leaving ample capacity in the cluster
 
-- Use `--config` to point at any other YAML file.
+- When QA runs, look for `[QA] …` streaming logs and a closing `QA_OK` or `QA_ERROR:<reason>` line in the **QA Validation** section to confirm whether the official ODH regression suite agrees with the deployment decision.
+- Use `--config` to point at any other YAML file (base template, generated overlay, or your own manifest).
 - `LLMAgent` also accepts a `bootstrap_config` parameter if you embed it in your own Python application.
 
+### Applying optimized serving arguments
+
+1. The Decision Specialist inspects the `serving_arguments` it inherited from the configuration summary. If any flag is missing/unsafe (e.g., no `--tensor-parallel-size`), it returns an `OPTIMIZED_SERVING_ARGUMENTS_JSON` block that contains the minimal fix(es).
+2. The supervisor relays that JSON to the Configuration Specialist, which calls `generate_optimal_serving_arguments(optimized_args_json=<blob>)`.
+3. That tool uses `config-yaml/sample_modelcar_config.base.yaml` when present (falling back to `config-yaml/sample_modelcar_config.yaml`), merges the overrides, and writes the result to `config-yaml/sample_modelcar_config.generated.yaml`.
+4. The tool’s response (`Updated serving arguments for model(s): … Generated config: …`) is echoed directly in the supervisor transcript so you can confirm what was touched.
+
+Because the base template is never mutated you can always diff the generated overlay, commit it, or pass it straight to the QA pipeline.
+
+## QA Validation
+
+The QA Specialist executes the upstream Opendatahub model validation suite so the deployment story ends with automated regression coverage instead of just a theoretical GO/NO-GO. It only runs after the accelerator step reports a healthy cluster.
+
+- The specialist stages your kubeconfig (`$KUBECONFIG` or `~/.kube/config`), OCI pull secret (`$OCI_REGISTRY_PULL_SECRET`), and `config-yaml/sample_modelcar_config.generated.yaml` into `/tmp/odh-tests-*`.
+- It then runs `podman run --rm quay.io/opendatahub/opendatahub-tests:latest ...` with the staged assets mounted in and streams logs back to the terminal prefixed with `[QA]`.
+- The final line starts with `QA_OK:` on success or `QA_ERROR:<code>` on failure (`QA_ERROR:KUBECONFIG_MISSING`, `QA_ERROR:TESTS_FAILED`, etc.), making it easy for the Decision Specialist to summarise next steps.
+
+Environment variables:
+
+```bash
+export OCI_REGISTRY_PULL_SECRET="..."        # REQUIRED: base64 pull secret accepted by registry.redhat.io
+export KUBECONFIG="$HOME/.kube/config"       # Optional override (defaults to ~/.kube/config)
+export VLLM_RUNTIME_IMAGE="quay.io/modh/..." # Optional; threaded through to pytest --vllm-runtime-image
+```
+
+Podman is mandatory for this step; if it is missing or you skip QA entirely the rest of the supervisor pipeline still works.
+
 ## Configuration Files
+
+The repo ships two sample manifests:
+
+- `config-yaml/sample_modelcar_config.base.yaml` – canonical template referenced throughout the README; update this when you want to change defaults.
+- `config-yaml/sample_modelcar_config.generated.yaml` – auto-generated overlay containing the latest optimized `serving_arguments` from the supervisor loop (safe to edit/commit).
+
+Each file still contains the same schema:
 
 - `model-car`: list (or single mapping) describing each model. Keys:
   - `name`: identifier reported in CLI output.
@@ -124,7 +206,8 @@ src/runtimes_dep_agent/
 │   └── specialists/
 │       ├── config_specialist.py
 │       ├── accelerator_specialist.py
-│       └── decision_specialist.py
+│       ├── decision_specialist.py
+│       └── qa_specialist.py      # ODH validation runner via Podman
 ├── config/
 │   └── model_config.py           # YAML + skopeo helpers
 ├── execute_agent.py              # CLI entry point

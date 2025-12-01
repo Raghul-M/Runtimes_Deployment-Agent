@@ -14,6 +14,7 @@ from typing import Callable
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
+import yaml
 
 from . import SpecialistSpec
 
@@ -36,7 +37,7 @@ def build_qa_specialist(
 
         image = "quay.io/opendatahub/opendatahub-tests:latest"
         runtime_image = os.getenv("VLLM_RUNTIME_IMAGE", "")
-        host_modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
+        host_modelcar_path = Path("config-yaml/sample_modelcar_config.generated.yaml")
         REGISTRY_PULL_SECRET = os.environ.get("OCI_REGISTRY_PULL_SECRET", "")
         if not REGISTRY_PULL_SECRET:
             msg = "QA_ERROR:OCI_PULL_SECRET_MISSING OCI registry pull secret not set in environment."
@@ -65,7 +66,14 @@ def build_qa_specialist(
         tmp_modelcar_path = tmp_dir / "modelcar.yaml"
         shutil.copy2(host_modelcar_path, tmp_modelcar_path)
 
-
+        try:
+            with open(tmp_modelcar_path, "r") as f:
+                yaml.safe_load(f)
+        except Exception as e:
+            msg = f"QA_ERROR:MODELCAR_YAML_INVALID Failed to parse {tmp_modelcar_path}: {e}"
+            logger.error(msg)
+            print(f"[QA] {msg}", flush=True)
+            return msg
         try:
             shutil.copy2(host_kubeconfig_path, staged_kubeconfig)
             staged_kubeconfig.chmod(0o644)
