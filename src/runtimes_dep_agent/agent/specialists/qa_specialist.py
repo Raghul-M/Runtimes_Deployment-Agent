@@ -184,16 +184,21 @@ def build_qa_specialist(
     )
 
     @tool
-    def analyze_qa_results(request: str) -> str:
+    def analyze_qa_results(request: str, runtime_image: str) -> str:
         """
-        Analyze the QA test output and provide a summary.
+        Supervisor-facing entrypoint. The supervisor must pass:
+            - request: what to do (e.g. "run QA and summarize results")
+            - runtime_image: the vLLM runtime image to test
+        """
+        qa_input = (
+            f"{request}\n\n"
+            f"RUNTIME_IMAGE::{runtime_image}\n"
+            "You MUST call `run_odh_tests` using this exact runtime image."
+        )
 
-        This is the supervisor-facing tool: the supervisor will send a natural language
-        request (e.g., 'run QA and summarize the results'), and you should call the
-        internal QA agent, which in turn decides when to use `run_odh_tests`.
-        """
-        result = agent.invoke({"messages": [{"role": "user", "content": request}]})
+        result = agent.invoke({"messages": [{"role": "user", "content": qa_input}]})
         return extract_text(result)
+
 
     analyze_qa_results.name = "analyze_qa_results"
 

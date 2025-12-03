@@ -96,7 +96,14 @@ class LLMAgent:
 
             "A model-car configuration has already been processed by the host program. "
             "You can access its details only via your tools; never ask the user for YAML or file paths.\n"
-            "You will receive the vLLM runtime image from Accelerator Specialist. Provide this image to the QA Specialist when invoking its tests.\n\n"
+            "- When you call the Accelerator Specialist, it will return a JSON blob that includes a field "
+            "vllm_runtime_image indicating the vLLM runtime image to be used for deployment.\n"
+            "If you get a GO decision from the Decision Specialist, you MUST use this exact image to call the QA Specialist.\n\n"
+            "- If you need to call the QA Specialist (tool `analyze_qa_results`), you MUST:\n"
+            "  - Set the `request` argument to a short natural-language instruction like\n"
+            "    \"Run QA and summarize the validation results.\"\n"
+            "  - Set the `runtime_image` argument to the exact value of \"vllm_runtime_image\" from the\n"
+            "    accelerator JSON. Do NOT invent or guess this value.\n"
 
             "Environment and safety rules (CRITICAL):\n"
             "- After calling the Accelerator Specialist, if its report indicates ANY of the following:\n"

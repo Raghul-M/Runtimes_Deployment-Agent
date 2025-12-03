@@ -161,7 +161,10 @@ def build_accelerator_specialist(
 
     @tool
     def analyze_accelerator(request: str) -> str:
-        """Delegate accelerator and GPU validation requests to the accelerator specialist."""
+        """Delegate accelerator and GPU validation requests to the accelerator specialist.
+        Always return the JSON output from get_accelerator_metadata_json() to the Supervisor.
+        
+        """
         result = agent.invoke({"messages": [{"role": "user", "content": request}]})
         return extract_text(result)
 
