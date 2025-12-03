@@ -26,7 +26,6 @@ model-car:
     - --uvicorn-log-level=debug
     - --max-model-len=1024
     - --trust-remote-code
-    - --distributed-executor-backend=mp
     - --tensor-parallel-size=1
     gpu_count: 1
 - name: phi-4-quantized.w8a8
