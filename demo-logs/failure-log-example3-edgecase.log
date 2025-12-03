@@ -1,0 +1,188 @@
+agent --config config-yaml/sample_modelcar_config.yaml
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1764052976.818686  887832 alts_credentials.cc:93] ALTS creds ignored. Not running on GCP and untrusted ALTS is not enabled.
+
+Supervisor Output
+-----------------
+INFO:runtimes_dep_agent.agent.specialists.qa_specialist:Running ODH tests with command: podman run --rm -e KUBECONFIG=/home/odh/.kube/config -e OCI_REGISTRY_PULL_SECRET=cmgtZWUtZXF1YXJtam46Q291ckBnZTkjRWRSZW5lMjAxOQ== -v /tmp/odh-tests-htck6idq/kubeconfig:/home/odh/.kube/config:Z -v /tmp/odh-tests-htck6idq/results:/home/odh/opendatahub-tests/results:Z -v /tmp/odh-tests-htck6idq/modelcar.yaml:/home/odh/opendatahub-tests/modelcar.yaml:Z quay.io/opendatahub/opendatahub-tests:latest -vv tests/model_serving/model_runtime/model_validation/test_modelvalidation.py --model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml --vllm-runtime-image= --supported-accelerator-type=Nvidia --registry-host=registry.redhat.io --snapshot-update --log-file=/home/odh/opendatahub-tests/results/pytest-logs.log
+[QA] Starting ODH tests in container...
+[QA] 2025-11-25T06:43:07.928909 ocp_resources.resource INFO Trying to get client via new_client_from_config
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/urllib3/connectionpool.py:1097: InsecureRequestWarning: Unverified HTTPS request is being made to host 'api.ragmawsgpu-pool-s29p9.aws.rh-ods.com'. Adding certificate verification is strongly advised. See: https://urllib3.readthedocs.io/en/latest/advanced-usage.html#tls-warnings
+[QA]   warnings.warn(
+[QA] /home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/exceptions.py:91: DeprecationWarning: HTTPResponse.getheaders() is deprecated and will be removed in urllib3 v2.1.0. Instead access HTTPResponse.headers directly.
+[QA]   self.headers = http_resp.getheaders()
+[QA] INTERNALERROR> Traceback (most recent call last):
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/client.py", line 55, in inner
+[QA] INTERNALERROR>     resp = func(self, *args, **kwargs)
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/client.py", line 277, in request
+[QA] INTERNALERROR>     api_response = self.client.call_api(
+[QA] INTERNALERROR>         path,
+[QA] INTERNALERROR>     ...<11 lines>...
+[QA] INTERNALERROR>         _request_timeout=params.get('_request_timeout')
+[QA] INTERNALERROR>     )
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/api_client.py", line 348, in call_api
+[QA] INTERNALERROR>     return self.__call_api(resource_path, method,
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                            path_params, query_params, header_params,
+[QA] INTERNALERROR>                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>     ...<2 lines>...
+[QA] INTERNALERROR>                            _return_http_data_only, collection_formats,
+[QA] INTERNALERROR>                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                            _preload_content, _request_timeout, _host)
+[QA] INTERNALERROR>                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/api_client.py", line 180, in __call_api
+[QA] INTERNALERROR>     response_data = self.request(
+[QA] INTERNALERROR>         method, url, query_params=query_params, headers=header_params,
+[QA] INTERNALERROR>         post_params=post_params, body=body,
+[QA] INTERNALERROR>         _preload_content=_preload_content,
+[QA] INTERNALERROR>         _request_timeout=_request_timeout)
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/api_client.py", line 373, in request
+[QA] INTERNALERROR>     return self.rest_client.GET(url,
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~~~~~~~^^^^^
+[QA] INTERNALERROR>                                 query_params=query_params,
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                                 _preload_content=_preload_content,
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                                 _request_timeout=_request_timeout,
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                                 headers=headers)
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/rest.py", line 244, in GET
+[QA] INTERNALERROR>     return self.request("GET", url,
+[QA] INTERNALERROR>            ~~~~~~~~~~~~^^^^^^^^^^^^
+[QA] INTERNALERROR>                         headers=headers,
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                         _preload_content=_preload_content,
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                         _request_timeout=_request_timeout,
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                         query_params=query_params)
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/rest.py", line 238, in request
+[QA] INTERNALERROR>     raise ApiException(http_resp=r)
+[QA] INTERNALERROR> kubernetes.client.exceptions.ApiException: (401)
+[QA] INTERNALERROR> Reason: Unauthorized
+[QA] INTERNALERROR> HTTP response headers: HTTPHeaderDict({'Audit-Id': '770d043c-98f4-4a30-93a6-8973eef3b5c4', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload', 'Date': 'Tue, 25 Nov 2025 06:43:08 GMT', 'Content-Length': '129'})
+[QA] INTERNALERROR> HTTP response body: b'{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}\n'
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR> During handling of the above exception, another exception occurred:
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR> Traceback (most recent call last):
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/_pytest/main.py", line 316, in wrap_session
+[QA] INTERNALERROR>     config.hook.pytest_sessionstart(session=session)
+[QA] INTERNALERROR>     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/pluggy/_hooks.py", line 512, in __call__
+[QA] INTERNALERROR>     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/pluggy/_manager.py", line 120, in _hookexec
+[QA] INTERNALERROR>     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/pluggy/_callers.py", line 167, in _multicall
+[QA] INTERNALERROR>     raise exception
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/pluggy/_callers.py", line 121, in _multicall
+[QA] INTERNALERROR>     res = hook_impl.function(*args)
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/conftest.py", line 306, in pytest_sessionstart
+[QA] INTERNALERROR>     updated_global_config(admin_client=get_client(), config=config)
+[QA] INTERNALERROR>                                        ~~~~~~~~~~^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/ocp_resources/resource.py", line 287, in get_client
+[QA] INTERNALERROR>     return kubernetes.dynamic.DynamicClient(client=_client)
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/client.py", line 84, in __init__
+[QA] INTERNALERROR>     self.__discoverer = discoverer(self, cache_file)
+[QA] INTERNALERROR>                         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/discovery.py", line 230, in __init__
+[QA] INTERNALERROR>     Discoverer.__init__(self, client, cache_file)
+[QA] INTERNALERROR>     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/discovery.py", line 55, in __init__
+[QA] INTERNALERROR>     self.__init_cache()
+[QA] INTERNALERROR>     ~~~~~~~~~~~~~~~~~^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/discovery.py", line 71, in __init_cache
+[QA] INTERNALERROR>     self._load_server_info()
+[QA] INTERNALERROR>     ~~~~~~~~~~~~~~~~~~~~~~^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/discovery.py", line 146, in _load_server_info
+[QA] INTERNALERROR>     'kubernetes': self.client.request('get', '/version', serializer=just_json)
+[QA] INTERNALERROR>                   ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/client.py", line 57, in inner
+[QA] INTERNALERROR>     raise api_exception(e)
+[QA] INTERNALERROR> kubernetes.dynamic.exceptions.UnauthorizedError: 401
+[QA] INTERNALERROR> Reason: Unauthorized
+[QA] INTERNALERROR> HTTP response headers: HTTPHeaderDict({'Audit-Id': '770d043c-98f4-4a30-93a6-8973eef3b5c4', 'Cache-Control': 'no-cache, private', 'Content-Type': 'application/json', 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload', 'Date': 'Tue, 25 Nov 2025 06:43:08 GMT', 'Content-Length': '129'})
+[QA] INTERNALERROR> HTTP response body: b'{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}\n'
+[QA] INTERNALERROR> Original traceback: 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/client.py", line 55, in inner
+[QA] INTERNALERROR>     resp = func(self, *args, **kwargs)
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/dynamic/client.py", line 277, in request
+[QA] INTERNALERROR>     api_response = self.client.call_api(
+[QA] INTERNALERROR>         path,
+[QA] INTERNALERROR>     ...<11 lines>...
+[QA] INTERNALERROR>         _request_timeout=params.get('_request_timeout')
+[QA] INTERNALERROR>     )
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/api_client.py", line 348, in call_api
+[QA] INTERNALERROR>     return self.__call_api(resource_path, method,
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                            path_params, query_params, header_params,
+[QA] INTERNALERROR>                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>     ...<2 lines>...
+[QA] INTERNALERROR>                            _return_http_data_only, collection_formats,
+[QA] INTERNALERROR>                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                            _preload_content, _request_timeout, _host)
+[QA] INTERNALERROR>                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/api_client.py", line 180, in __call_api
+[QA] INTERNALERROR>     response_data = self.request(
+[QA] INTERNALERROR>         method, url, query_params=query_params, headers=header_params,
+[QA] INTERNALERROR>         post_params=post_params, body=body,
+[QA] INTERNALERROR>         _preload_content=_preload_content,
+[QA] INTERNALERROR>         _request_timeout=_request_timeout)
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/api_client.py", line 373, in request
+[QA] INTERNALERROR>     return self.rest_client.GET(url,
+[QA] INTERNALERROR>            ~~~~~~~~~~~~~~~~~~~~^^^^^
+[QA] INTERNALERROR>                                 query_params=query_params,
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                                 _preload_content=_preload_content,
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                                 _request_timeout=_request_timeout,
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                                 headers=headers)
+[QA] INTERNALERROR>                                 ^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/rest.py", line 244, in GET
+[QA] INTERNALERROR>     return self.request("GET", url,
+[QA] INTERNALERROR>            ~~~~~~~~~~~~^^^^^^^^^^^^
+[QA] INTERNALERROR>                         headers=headers,
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                         _preload_content=_preload_content,
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                         _request_timeout=_request_timeout,
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR>                         query_params=query_params)
+[QA] INTERNALERROR>                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[QA] INTERNALERROR> 
+[QA] INTERNALERROR>   File "/home/odh/opendatahub-tests/.venv/lib64/python3.13/site-packages/kubernetes/client/rest.py", line 238, in request
+[QA] INTERNALERROR>     raise ApiException(http_resp=r)
+[QA] Exception in thread Thread-1 (_monitor):
+ERROR:runtimes_dep_agent.agent.specialists.qa_specialist:ODH tests exited with code 3
+### Configuration Summary
+The Configuration Specialist has processed the model-car file for `granite-3.1-8b-instruct` and reports the following requirements:
+- **Image Size:** 15.24 GB
+- **Parameter Count:** 8 Billion
+- **Quantization:** None
+- **Estimated VRAM:** 18 GB
+- **Supported Architectures:** amd64
+
+### Accelerator Summary
+The Accelerator Specialist failed to inspect the cluster's accelerators. The tool reported an authentication issue and requires a login to the cluster to proceed.
+
+### Deployment Decision
+The Decision Specialist has issued a **GO** for deployment.
+
+The model's estimated VRAM requirement of 18 GB is well within the capacity of a single GPU. However, the initial serving arguments were not suitable for a single-GPU setup. The specialist has optimized the arguments by adding `--tensor-parallel-size=1` for stability and removing the unnecessary `--distributed-executor-backend` flag.
+
+### QA Validation
+QA validation **failed**.
+
+The QA Specialist was unable to run the validation test suite because the OpenShift cluster was unreachable, returning a `401 Unauthorized` error. This indicates that the authentication token has expired or the configured user lacks the necessary permissions. To resolve this, please log in to your OpenShift cluster and rerun the validation

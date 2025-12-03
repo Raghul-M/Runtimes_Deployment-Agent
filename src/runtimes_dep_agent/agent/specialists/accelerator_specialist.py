@@ -14,6 +14,7 @@ from ...validators.accelerator_validator import (
     check_cluster_login,
     check_gpu_availability,
     get_gpu_info,
+    get_vllm_runtime_image_from_template
 )
 
 
@@ -63,6 +64,28 @@ def build_accelerator_specialist(
             return f"GPU information saved to {file_path}. No GPU available in the cluster."
 
     @tool
+    def get_accelerator_metadata_json() -> str:
+        """
+        Return accelerator metadata as JSON.
+        Example response:
+            {
+            "gpu_available": true,
+            "gpu_provider": "NVIDIA",
+            "vllm_image": "quay.io/opendatahub/vllm-cuda-runtime:latest"
+            }
+        """
+        gpu_status, gpu_provider = check_gpu_availability()
+        vllm_image = get_vllm_runtime_image_from_template()
+        
+        metadata = {
+            "gpu_available": gpu_status,
+            "gpu_provider": gpu_provider,
+            "vllm_image": vllm_image
+        }
+        
+        return json.dumps(metadata, indent=2)
+
+    @tool
     def validate_accelerator_compatibility(request: str) -> str:
         """Validate accelerator compatibility for models.
         
@@ -102,7 +125,7 @@ def build_accelerator_specialist(
         if gpu_provider == "NVIDIA":
             result += "\nCompatibility Notes:\n"
             result += "- CUDA-compatible models are supported\n"
-            result += "- vLLM-Spyre-x86 compatibility available\n"
+            result += "- vLLM compatibility available\n"
         elif gpu_provider == "AMD":
             result += "\nCompatibility Notes:\n"
             result += "- ROCm-compatible models are supported\n"
@@ -119,6 +142,9 @@ def build_accelerator_specialist(
         "and provide detailed GPU information from OpenShift clusters and the GPU size. "
         "Never ask the user for model requirements; rely on the cached JSON. "
         "Provide clear, structured responses with validation results and recommendations."
+        "You must always return a machine readable json output back to Supervisor by using the tool "
+        "get_accelerator_metadata_json() as a final step. And provide this json output to the Supervisor."
+
     )
 
     agent = create_agent(
@@ -128,13 +154,17 @@ def build_accelerator_specialist(
             check_gpu_status,
             get_detailed_gpu_information,
             validate_accelerator_compatibility,
+            get_accelerator_metadata_json
         ],
         system_prompt=prompt,
     )
 
     @tool
     def analyze_accelerator(request: str) -> str:
-        """Delegate accelerator and GPU validation requests to the accelerator specialist."""
+        """Delegate accelerator and GPU validation requests to the accelerator specialist.
+        Always return the JSON output from get_accelerator_metadata_json() to the Supervisor.
+        
+        """
         result = agent.invoke({"messages": [{"role": "user", "content": request}]})
         return extract_text(result)
 
