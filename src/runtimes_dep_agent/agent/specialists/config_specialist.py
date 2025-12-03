@@ -160,14 +160,6 @@ def build_config_specialist(
 
         updated_str = ", ".join(sorted(set(updated_models)))
         
-        if not output_path.exists():
-            time.sleep(1)
-            if not output_path.exists():
-                return (
-                    "Error: Failed to write updated model-car configuration to "
-                    f"{output_path}."
-                )
-        
         return (
             f"Updated serving arguments for model(s): {updated_str}. "
             f"Generated config: {output_path}"

@@ -95,7 +95,8 @@ class LLMAgent:
             "- QA Specialist: runs the Opendatahub model validation test suite and reports results.\n\n"
 
             "A model-car configuration has already been processed by the host program. "
-            "You can access its details only via your tools; never ask the user for YAML or file paths.\n\n"
+            "You can access its details only via your tools; never ask the user for YAML or file paths.\n"
+            "You will receive the vLLM runtime image from Accelerator Specialist. Provide this image to the QA Specialist when invoking its tests.\n\n"
 
             "Environment and safety rules (CRITICAL):\n"
             "- After calling the Accelerator Specialist, if its report indicates ANY of the following:\n"

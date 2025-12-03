@@ -30,14 +30,16 @@ def build_qa_specialist(
     """Return the QA specialist agent and the supervisor-facing tool."""
 
     @tool
-    def run_odh_tests() -> str:
+    def run_odh_tests(
+        runtime_image: str
+    ) -> str:
         """
         Run the ODH model validation test suite using a staged kubeconfig under /tmp.
+        :param runtime_image: The vLLM runtime image to use for testing.
         """
 
         image = "quay.io/opendatahub/opendatahub-tests:latest"
-        runtime_image = os.getenv("VLLM_RUNTIME_IMAGE", "")
-        host_modelcar_path = Path("config-yaml/sample_modelcar_config.generated.yaml")
+        host_modelcar_path = (Path(__file__).parent / "../../../../config-yaml/sample_modelcar_config.generated.yaml").resolve()
         REGISTRY_PULL_SECRET = os.environ.get("OCI_REGISTRY_PULL_SECRET", "")
         if not REGISTRY_PULL_SECRET:
             msg = "QA_ERROR:OCI_PULL_SECRET_MISSING OCI registry pull secret not set in environment."
@@ -170,7 +172,9 @@ def build_qa_specialist(
         "4. Provide clear, concise recommendations for next steps (e.g., fix kubeconfig, fix cluster access, "
         "   investigate failing tests, etc.).\n\n"
         "Never request kubeconfig contents or secrets from the user. Work only with the logs and status provided "
-        "by the tool."
+        "by the tool. \n"
+        "When you call 'run_odh_tests', you MUST provide the vLLM runtime image to test as the argument. \n"
+        "The vllm runtime image will be provided by the supervisor agent in your input request.\n"
     )
 
     agent = create_agent(

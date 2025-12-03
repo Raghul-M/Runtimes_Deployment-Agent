@@ -377,6 +377,7 @@ def get_vllm_runtime_image_from_template() -> str:
             capture_output=True,
             text=True,
             check=True,
+            timeout=30,
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(

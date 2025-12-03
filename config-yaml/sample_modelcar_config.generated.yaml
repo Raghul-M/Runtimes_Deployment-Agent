@@ -7,7 +7,7 @@ model-car:
     - --uvicorn-log-level=info
     - --max-model-len=2048
     - --trust-remote-code
-    - --distributed-executor-backend=mp
+    - --tensor-parallel-size=1
     gpu_count: 1
 - name: whisper-large-v2-W4A16-G128
   image: oci://registry.redhat.io/rhelai1/modelcar-whisper-large-v2-w4a16-g128:1.5
@@ -36,7 +36,7 @@ model-car:
     - --uvicorn-log-level=debug
     - --max-model-len=2048
     - --trust-remote-code
-    - --distributed-executor-backend=ray
+    - --tensor-parallel-size=1
     gpu_count: 1
 default:
   serving_arguments:

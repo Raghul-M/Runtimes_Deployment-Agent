@@ -64,9 +64,7 @@ def build_accelerator_specialist(
             return f"GPU information saved to {file_path}. No GPU available in the cluster."
 
     @tool
-    def get_accelerator_metadata_json(
-        template_name: str
-    ) -> str:
+    def get_accelerator_metadata_json() -> str:
         """
         Return accelerator metadata as JSON.
         Example response:
@@ -145,7 +143,7 @@ def build_accelerator_specialist(
         "Never ask the user for model requirements; rely on the cached JSON. "
         "Provide clear, structured responses with validation results and recommendations."
         "You must always return a machine readable json output back to Supervisor by using the tool "
-        "get_accelerator_metadata_json() as a final step."
+        "get_accelerator_metadata_json() as a final step. And provide this json output to the Supervisor."
 
     )
 
