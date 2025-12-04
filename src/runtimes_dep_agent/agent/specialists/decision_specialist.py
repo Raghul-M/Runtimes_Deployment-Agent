@@ -53,6 +53,11 @@ def build_decision_specialist(
     """Create the decision specialist that determines deployment feasibility."""
 
     @tool
+    def describe_preloaded_requirements() -> str:
+        """Return the preloaded model requirements as JSON."""
+        return json.dumps(precomputed_requirements, indent=2)
+    
+    @tool
     def assess_deployment_fit(file_path: str | None = None) -> str:
         """Evaluate whether cached models fit on the cluster GPUs (optionally override GPU info path)."""
         if not precomputed_requirements:
@@ -108,16 +113,62 @@ def build_decision_specialist(
             f"- Comparison: {comparison}"
         )
 
-    prompt = (
-        "You are a deployment decision specialist. Use the cached requirements and the GPU info file to decide "
-        "whether the models fit on the available hardware. Always call assess_deployment_fit to produce the "
-        "final analysis. Provide a clear comparison (e.g., model VRAM vs per-GPU memory) and state whether the "
-        "deployment is feasible."
-    )
+    prompt = """
+        You are a deployment decision specialist.
+
+        You MUST ALWAYS call BOTH tools:
+        1. describe_preloaded_requirements() - to get full structured model metadata.
+        2. assess_deployment_fit() - to get GPU capacity and VRAM fit data.
+
+        Use BOTH tool outputs together before writing the final answer.
+
+        Your job:
+        1. Evaluate model VRAM requirements vs GPU capacity.
+        2. Evaluate serving arguments against hardware:
+        - tensor_parallel_size
+        - distributed executor backend
+        - max_model_len (KV cache)
+        - GPU memory flags
+        - trust_remote_code
+        - dtype / quantization alignment
+        3. Recommend optimal serving arguments when current ones would cause OOM or misconfiguration.
+        4. If arguments are missing, infer the safest/optimal defaults using best vLLM practice.
+
+        Use all provided fields: model requirements, model size, quant bits, serving arguments, GPU capacity.
+        You MUST reason about the arguments, not just VRAM.
+
+        When you emit OPTIMIZED_SERVING_ARGUMENTS_JSON:
+
+        - You MUST treat it as a full replacement for the model's `serving_arguments` block.
+        - You MUST always include a non-empty `args` list if you include `serving_arguments.args`.
+        - Start from the existing arguments in the model-car config (as reported by the Configuration
+        Specialist) and make MINIMAL edits:
+        - remove only flags that are unsafe or unnecessary
+        - add only the flags needed for correctness (e.g. `--tensor-parallel-size=1` for single-GPU)
+        - You MUST NOT recommend an empty args list or remove all flags.
+        - Example shape:
+
+        ```json
+        {
+        "model_name": "granite-3.1-8b-instruct",
+        "serving_arguments": {
+            "args": [
+            "--uvicorn-log-level=info",
+            "--max-model-len=2048",
+            "--trust-remote-code",
+            "--tensor-parallel-size=1"
+            ],
+            "gpu_count": 1
+        }
+        }
+        ```
+
+        If you don't want to change any arguments, return same json as input.
+        """
 
     agent = create_agent(
         llm,
-        tools=[assess_deployment_fit],
+        tools=[assess_deployment_fit, describe_preloaded_requirements],
         system_prompt=prompt,
     )
 

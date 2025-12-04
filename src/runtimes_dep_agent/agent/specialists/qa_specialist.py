@@ -14,6 +14,7 @@ from typing import Callable
 from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
+import yaml
 
 from . import SpecialistSpec
 
@@ -29,14 +30,16 @@ def build_qa_specialist(
     """Return the QA specialist agent and the supervisor-facing tool."""
 
     @tool
-    def run_odh_tests() -> str:
+    def run_odh_tests(
+        runtime_image: str
+    ) -> str:
         """
         Run the ODH model validation test suite using a staged kubeconfig under /tmp.
+        :param runtime_image: The vLLM runtime image to use for testing.
         """
 
         image = "quay.io/opendatahub/opendatahub-tests:latest"
-        runtime_image = "quay.io/modh/vllm@sha256:db766445a1e3455e1bf7d16b008f8946fcbe9f277377af7abb81ae358805e7e2"
-        host_modelcar_path = Path("config-yaml/sample_modelcar_config.yaml")
+        host_modelcar_path = (Path(__file__).parent / "../../../../config-yaml/sample_modelcar_config.generated.yaml").resolve()
         REGISTRY_PULL_SECRET = os.environ.get("OCI_REGISTRY_PULL_SECRET", "")
         if not REGISTRY_PULL_SECRET:
             msg = "QA_ERROR:OCI_PULL_SECRET_MISSING OCI registry pull secret not set in environment."
@@ -65,7 +68,14 @@ def build_qa_specialist(
         tmp_modelcar_path = tmp_dir / "modelcar.yaml"
         shutil.copy2(host_modelcar_path, tmp_modelcar_path)
 
-
+        try:
+            with open(tmp_modelcar_path, "r") as f:
+                yaml.safe_load(f)
+        except Exception as e:
+            msg = f"QA_ERROR:MODELCAR_YAML_INVALID Failed to parse {tmp_modelcar_path}: {e}"
+            logger.error(msg)
+            print(f"[QA] {msg}", flush=True)
+            return msg
         try:
             shutil.copy2(host_kubeconfig_path, staged_kubeconfig)
             staged_kubeconfig.chmod(0o644)
@@ -149,9 +159,6 @@ def build_qa_specialist(
             msg = f"QA_ERROR:UNEXPECTED {e}"
             print(f"[QA] {msg}", flush=True)
             return msg
-        # Optional cleanup:
-        # finally:
-        #     shutil.rmtree(tmp_dir, ignore_errors=True)
 
     prompt = (
         "You are a QA Specialist responsible for validating machine learning model deployments "
@@ -165,7 +172,9 @@ def build_qa_specialist(
         "4. Provide clear, concise recommendations for next steps (e.g., fix kubeconfig, fix cluster access, "
         "   investigate failing tests, etc.).\n\n"
         "Never request kubeconfig contents or secrets from the user. Work only with the logs and status provided "
-        "by the tool."
+        "by the tool. \n"
+        "When you call 'run_odh_tests', you MUST provide the vLLM runtime image to test as the argument. \n"
+        "The vllm runtime image will be provided by the supervisor agent in your input request.\n"
     )
 
     agent = create_agent(
@@ -175,16 +184,21 @@ def build_qa_specialist(
     )
 
     @tool
-    def analyze_qa_results(request: str) -> str:
+    def analyze_qa_results(request: str, runtime_image: str) -> str:
         """
-        Analyze the QA test output and provide a summary.
+        Supervisor-facing entrypoint. The supervisor must pass:
+            - request: what to do (e.g. "run QA and summarize results")
+            - runtime_image: the vLLM runtime image to test
+        """
+        qa_input = (
+            f"{request}\n\n"
+            f"RUNTIME_IMAGE::{runtime_image}\n"
+            "You MUST call `run_odh_tests` using this exact runtime image."
+        )
 
-        This is the supervisor-facing tool: the supervisor will send a natural language
-        request (e.g., 'run QA and summarize the results'), and you should call the
-        internal QA agent, which in turn decides when to use `run_odh_tests`.
-        """
-        result = agent.invoke({"messages": [{"role": "user", "content": request}]})
+        result = agent.invoke({"messages": [{"role": "user", "content": qa_input}]})
         return extract_text(result)
+
 
     analyze_qa_results.name = "analyze_qa_results"
 
