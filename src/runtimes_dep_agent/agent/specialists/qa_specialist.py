@@ -46,6 +46,7 @@ def build_qa_specialist(
             logger.error(msg)
             print(f"[QA] {msg}", flush=True)
             return msg
+        VLLM_RUNTIME_IMAGE = os.environ.get("VLLM_RUNTIME_IMAGE", runtime_image)
 
         host_kubeconfig = os.environ.get(
             "KUBECONFIG", os.path.expanduser("~/.kube/config")
@@ -94,7 +95,7 @@ def build_qa_specialist(
                 "-vv",
                 "tests/model_serving/model_runtime/model_validation/test_modelvalidation.py",
                 "--model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml",
-                f"--vllm-runtime-image={runtime_image}",
+                f"--vllm-runtime-image={VLLM_RUNTIME_IMAGE}",
                 "--supported-accelerator-type=Nvidia",
                 "--registry-host=registry.redhat.io",
                 "--snapshot-update",

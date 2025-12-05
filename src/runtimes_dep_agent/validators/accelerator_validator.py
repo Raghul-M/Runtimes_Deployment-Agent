@@ -13,7 +13,7 @@ import re
 import json
 
 
-def check_gpu_availability():
+def check_gpu_availability() -> tuple[bool, str]:
     """
     Check if the GPU is available by running OpenShift command to check for GPU nodes.
     
@@ -31,16 +31,27 @@ def check_gpu_availability():
             timeout=30
         )
 
+        available_gpus = {
+            "nvidia.com/gpu": "NVIDIA",
+            "amd.com/gpu": "AMD",
+            "ibm.com/spyre_pf": "SPYRE_x86",
+            "ibm.com/spyre_vf": "SPYRE_s390x",
+            "habana.ai/gaudi": "INTEL",
+            "NONE": "NVIDIA",
+        }
+
         if result.returncode == 0:
-            # Check the output for GPU providers
             output = result.stdout
-            
-            # Check for NVIDIA GPU
             if "nvidia.com/gpu" in output:
-                return True, "NVIDIA"
-            # Check for AMD GPU
+                return True, available_gpus["nvidia.com/gpu"]
             elif "amd.com/gpu" in output:
-                return True, "AMD"
+                return True, available_gpus["amd.com/gpu"]
+            elif "ibm.com/spyre_pf" in output:
+                return True, available_gpus["ibm.com/spyre_pf"]
+            elif "ibm.com/spyre_vf" in output:
+                return True, available_gpus["ibm.com/spyre_vf"]
+            elif "habana.ai/gaudi" in output:
+                return True, available_gpus["habana.ai/gaudi"]
             else:
                 return False, "NONE"
         else:
@@ -86,6 +97,8 @@ def get_gpu_info():
                 info_content = get_nvidia_gpu_details()
             elif gpu_provider == "AMD":
                 info_content = get_amd_gpu_details()
+            elif gpu_provider == "SPYRE":
+                info_content = get_spyre_gpu_details()
             else:
                 info_content = f"Unknown GPU provider: {gpu_provider}\n"
         
@@ -348,9 +361,63 @@ def get_amd_gpu_details():
     except Exception as e:
         return f"Error getting AMD GPU details: {str(e)}\n"
     
-def get_vllm_runtime_image_from_template() -> str:
+def get_spyre_gpu_details():
+    """Get detailed SPYRE GPU information."""
+    try:
+        # Get nodes with SPYRE GPU
+        result = subprocess.run(
+            ["oc", "get", "nodes", "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            return "Failed to get node information\n"
+        nodes_data = json.loads(result.stdout)
+        
+        gpu_info = []
+        for node in nodes_data.get("items", []):
+            allocatable = node.get("status", {}).get("allocatable", {})
+            if "ibm.com/spyre_pf" in allocatable:
+                node_name = node.get("metadata", {}).get("name", "Unknown")
+                gpu_count = allocatable.get("ibm.com/spyre_pf", "0")
+                memory = allocatable.get("memory", "Unknown")
+                storage = allocatable.get("ephemeral-storage", "Unknown")
+                
+                # Get instance type from labels
+                labels = node.get("metadata", {}).get("labels", {})
+                instance_type = labels.get("node.kubernetes.io/instance-type", "Unknown")
+                
+                # Get cloud provider from cluster info
+                cloud_provider = _get_cloud_provider()
+                
+                # Convert memory to GB
+                memory_gb = _convert_to_gb(memory)
+                storage_gb = _convert_to_gb(storage)
+                
+                gpu_info.append(f"• Cloud Provider: {cloud_provider}")
+                gpu_info.append(f"• Instance Type: {instance_type}")
+                gpu_info.append(f"• GPU Provider: SPYRE")
+                gpu_info.append(f"• Allocatable GPUs: {gpu_count}")
+                gpu_info.append(f"• Memory: {memory_gb} GB")
+                gpu_info.append(f"• Storage: {storage_gb} GB")
+                gpu_info.append(f"• Node Name: {node_name}")
+                gpu_info.append("")  # Empty line between nodes
+        
+        return "\n".join(gpu_info) if gpu_info else "No SPYRE GPU nodes found\n"
+        
+    except Exception as e:
+        return f"Error getting SPYRE GPU details: {str(e)}\n"
+    
+def get_vllm_runtime_image_from_template(
+        gpu_provider: str
+) -> str:
     """
-    Return the vLLM runtime container image from an OpenShift Template.
+    Return the vLLM runtime container image from an OpenShift Template based on the GPU provider.
+
+    Args:
+        gpu_provider (str): The GPU provider ("NVIDIA", "AMD", "SPYRE", or "NONE")
 
     It expects a Template like `vllm-cuda-runtime-template` that contains a
     single ServingRuntime in `objects[0]` and reads:
@@ -360,11 +427,22 @@ def get_vllm_runtime_image_from_template() -> str:
     Raises:
         RuntimeError if the template or container/image cannot be resolved.
     """
+    avaible_templates = {
+        "NVIDIA": "vllm-cuda-runtime-template",
+        "AMD": "vllm-rocm-runtime-template",
+        "SPYRE_x86": "vllm-spyre-x86-runtime-template",
+        "SPYRE_s390x": "vllm-spyre-s390x-runtime-template",
+        "CPU": "vllm-cpu-runtime-template",
+        "INTEL": "vllm-gaudi-runtime-template",
+        "NONE": "vllm-cuda-runtime-template",
+    }
+    if gpu_provider not in avaible_templates:
+        raise RuntimeError(f"No vLLM runtime template for GPU provider: {gpu_provider}")
     cmd = [
         "oc",
         "get",
         "template",
-        "vllm-cuda-runtime-template",
+        avaible_templates[gpu_provider],
         "-n",
         "redhat-ods-applications",
         "-o",
