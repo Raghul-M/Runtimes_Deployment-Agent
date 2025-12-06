@@ -51,7 +51,7 @@ class LLMAgent:
     # Supervisor operations
     # ------------------------------------------------------------------ #
     def run_supervisor(
-        self, user_input: str, recursion_limit: int = 15
+        self, user_input: str, recursion_limit: int = 100
     ) -> Dict[str, Any]:
         """Invoke the top-level supervisor on a natural language request."""
         return self._supervisor.invoke(

@@ -125,46 +125,138 @@ def build_decision_specialist(
         Your job:
         1. Evaluate model VRAM requirements vs GPU capacity.
         2. Evaluate serving arguments against hardware:
-        - tensor_parallel_size
-        - distributed executor backend
-        - max_model_len (KV cache)
-        - GPU memory flags
-        - trust_remote_code
-        - dtype / quantization alignment
+           - tensor_parallel_size
+           - distributed executor backend
+           - max_model_len (KV cache)
+           - GPU memory flags
+           - trust_remote_code
+           - dtype / quantization alignment
         3. Recommend optimal serving arguments when current ones would cause OOM or misconfiguration.
         4. If arguments are missing, infer the safest/optimal defaults using best vLLM practice.
 
-        Use all provided fields: model requirements, model size, quant bits, serving arguments, GPU capacity.
         You MUST reason about the arguments, not just VRAM.
 
+        ----------------------------------------------------------------------
+        Quantization vs accelerator compatibility (from vLLM docs)
+        ----------------------------------------------------------------------
+        When the supervisor includes accelerator information (e.g. NVIDIA A100,
+        NVIDIA H100, AMD GPU, Intel GPU, x86 CPU) and you can infer or see a
+        quantization type from the model metadata or name (e.g. "w4a16",
+        "w8a8", "fp8", "AWQ", "GPTQ", "GGUF", "bitsandbytes"), you MUST
+        cross-check it against the following compatibility matrix:
+
+        Implementations:
+
+        - AWQ:
+          - Supported on: Turing, Ampere, Ada, Hopper, Intel GPU, x86 CPU
+          - Not supported on: Volta, AMD GPU, AWS Inferentia, Google TPU
+
+        - GPTQ:
+          - Supported on: Volta, Turing, Ampere, Ada, Hopper, Intel GPU, x86 CPU
+          - Not supported on: AMD GPU, AWS Inferentia, Google TPU
+
+        - Marlin (GPTQ/AWQ/FP8):
+          - Supported on: Ampere, Ada, Hopper
+          - Not supported on: Volta, Turing, AMD GPU, Intel GPU, x86 CPU,
+            AWS Inferentia, Google TPU
+
+        - INT8 (W8A8):
+          - Supported on: Turing, Ampere, Ada, Hopper, x86 CPU
+          - Not supported on: Volta, AMD GPU, Intel GPU, AWS Inferentia,
+            Google TPU
+
+        - FP8 (W8A8):
+          - Supported on: Ada, Hopper, AMD GPU
+          - Not supported on: Volta, Turing, Ampere, Intel GPU, x86 CPU,
+            AWS Inferentia, Google TPU
+
+        - AQLM:
+          - Supported on: Volta, Turing, Ampere, Ada, Hopper
+          - Not supported on: AMD GPU, Intel GPU, x86 CPU, AWS Inferentia,
+            Google TPU
+
+        - bitsandbytes:
+          - Supported on: Volta, Turing, Ampere, Ada, Hopper
+          - Not supported on: AMD GPU, Intel GPU, x86 CPU, AWS Inferentia,
+            Google TPU
+
+        - DeepSpeedFP:
+          - Supported on: Volta, Turing, Ampere, Ada, Hopper
+          - Not supported on: AMD GPU, Intel GPU, x86 CPU, AWS Inferentia,
+            Google TPU
+
+        - GGUF:
+          - Supported on: Volta, Turing, Ampere, Ada, Hopper
+          - Not supported on: AMD GPU, Intel GPU, x86 CPU, AWS Inferentia,
+            Google TPU
+
+        Mapping hints:
+        - You may infer quantization implementation from model naming or metadata:
+          - Names like "*.w4a16" or "*.w8a8" often correspond to 4-bit / 8-bit
+            quantization (AWQ/GPTQ/INT8 W8A8-style).
+          - Names containing "fp8" or "FP8" usually map to FP8 (W8A8) kernels.
+          - If the requirements explicitly mention AWQ / GPTQ / GGUF / bitsandbytes,
+            use that directly.
+        - You may infer hardware "generation" from accelerator names:
+          - A100, A30, A10 generally → Ampere
+          - H100 → Hopper
+          - L4, L40, some RTX 40xx → Ada
+          - V100 → Volta
+          - T4 → Turing
+
+        How to use this matrix:
+        - If a model’s quantization implementation is NOT supported on the
+          detected accelerator generation, you MUST explicitly flag this as a
+          compatibility problem.
+        - In that case you should either:
+          - Recommend a compatible quantization / model variant if one is likely
+            to exist (e.g. prefer an FP8 kernel only on Ada/Hopper/AMD GPU),
+            OR
+          - Mark the deployment as NO-GO with a clear explanation that the
+            quantization kernel is unsupported on the current hardware.
+        - If the combination IS supported, you can treat quantization as
+          compatible but still consider VRAM and serving arguments (tensor
+          parallel size, max_model_len, etc.).
+
+        ----------------------------------------------------------------------
+        OPTIMIZED_SERVING_ARGUMENTS_JSON
+        ----------------------------------------------------------------------
         When you emit OPTIMIZED_SERVING_ARGUMENTS_JSON:
 
         - You MUST treat it as a full replacement for the model's `serving_arguments` block.
         - You MUST always include a non-empty `args` list if you include `serving_arguments.args`.
-        - Start from the existing arguments in the model-car config (as reported by the Configuration
-        Specialist) and make MINIMAL edits:
-        - remove only flags that are unsafe or unnecessary
-        - add only the flags needed for correctness (e.g. `--tensor-parallel-size=1` for single-GPU)
+        - Start from the existing arguments in the model-car config (as reported by the
+          Configuration Specialist) and make MINIMAL edits:
+          - remove only flags that are unsafe or unnecessary
+          - add only the flags needed for correctness (e.g. `--tensor-parallel-size=1`
+            for single-GPU)
         - You MUST NOT recommend an empty args list or remove all flags.
-        - Example shape:
+
+        Example shape:
 
         ```json
         {
-        "model_name": "granite-3.1-8b-instruct",
-        "serving_arguments": {
+          "model_name": "granite-3.1-8b-instruct",
+          "serving_arguments": {
             "args": [
-            "--uvicorn-log-level=info",
-            "--max-model-len=2048",
-            "--trust-remote-code",
-            "--tensor-parallel-size=1"
+              "--uvicorn-log-level=info",
+              "--max-model-len=2048",
+              "--trust-remote-code",
+              "--tensor-parallel-size=1"
             ],
             "gpu_count": 1
-        }
+          }
         }
         ```
 
-        If you don't want to change any arguments, return same json as input.
+        If you don't want to change any arguments, return the same JSON as input.
+
+        In your final reasoning and decision, ALWAYS combine:
+        - VRAM fit vs GPU capacity,
+        - serving arguments vs hardware,
+        - and quantization vs accelerator compatibility from the matrix above.
         """
+
 
     agent = create_agent(
         llm,

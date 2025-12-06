@@ -24,6 +24,11 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_CONFIG_PATH,
         help="Path to the model-car YAML config file to preload.",
     )
+    parser.add_argument(
+        "--model",
+        default="gemini-2.5-pro",
+        help="Model name to use for the supervisor agent.",
+    )
     return parser.parse_args()
 
 
@@ -37,6 +42,7 @@ def main() -> None:
     # Build the supervisor with preloaded config
     agent = LLMAgent(
         api_key=api_key,
+        model=args.model,
         bootstrap_config=args.config,
     )
 
