@@ -381,7 +381,7 @@ def get_spyre_gpu_details():
             for spyre_key, spyre_label in [("ibm.com/spyre_pf", "SPYRE_x86"), ("ibm.com/spyre_vf", "SPYRE_s390x")]:
                 if spyre_key in allocatable:
                     node_name = node.get("metadata", {}).get("name", "Unknown")
-                    gpu_count = allocatable.get("ibm.com/spyre_pf", "0")
+                    gpu_count = allocatable.get(spyre_key, "0")
                     memory = allocatable.get("memory", "Unknown")
                     storage = allocatable.get("ephemeral-storage", "Unknown")
                     
