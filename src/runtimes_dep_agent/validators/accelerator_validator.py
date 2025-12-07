@@ -98,6 +98,8 @@ def get_gpu_info():
                 info_content = get_amd_gpu_details()
             elif gpu_provider.startswith("SPYRE"):
                 info_content = get_spyre_gpu_details()
+            elif gpu_provider == "INTEL":
+                info_content = get_intel_gpu_details()
             else:
                 info_content = f"Unknown GPU provider: {gpu_provider}\n"
         
@@ -409,6 +411,55 @@ def get_spyre_gpu_details():
         
     except Exception as e:
         return f"Error getting SPYRE GPU details: {str(e)}\n"
+    
+def get_intel_gpu_details():
+    """Get detailed Intel GPU information."""
+    try:
+        # Get nodes with Intel GPU
+        result = subprocess.run(
+            ["oc", "get", "nodes", "-o", "json"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            return "Failed to get node information\n"
+        nodes_data = json.loads(result.stdout)
+        
+        gpu_info = []
+        for node in nodes_data.get("items", []):
+            allocatable = node.get("status", {}).get("allocatable", {})
+            if "habana.ai/gaudi" in allocatable:
+                node_name = node.get("metadata", {}).get("name", "Unknown")
+                gpu_count = allocatable.get("habana.ai/gaudi", "0")
+                memory = allocatable.get("memory", "Unknown")
+                storage = allocatable.get("ephemeral-storage", "Unknown")
+                
+                # Get instance type from labels
+                labels = node.get("metadata", {}).get("labels", {})
+                instance_type = labels.get("node.kubernetes.io/instance-type", "Unknown")
+                
+                # Get cloud provider from cluster info
+                cloud_provider = _get_cloud_provider()
+                
+                # Convert memory to GB
+                memory_gb = _convert_to_gb(memory)
+                storage_gb = _convert_to_gb(storage)
+                
+                gpu_info.append(f"• Cloud Provider: {cloud_provider}")
+                gpu_info.append(f"• Instance Type: {instance_type}")
+                gpu_info.append(f"• GPU Provider: INTEL")
+                gpu_info.append(f"• Allocatable GPUs: {gpu_count}")
+                gpu_info.append(f"• Memory: {memory_gb} GB")
+                gpu_info.append(f"• Storage: {storage_gb} GB")
+                gpu_info.append(f"• Node Name: {node_name}")
+                gpu_info.append("")  # Empty line between nodes
+        
+        return "\n".join(gpu_info) if gpu_info else "No INTEL GPU nodes found\n"
+        
+    except Exception as e:
+        return f"Error getting INTEL GPU details: {str(e)}\n"
     
 def get_vllm_runtime_image_from_template(
         gpu_provider: str
