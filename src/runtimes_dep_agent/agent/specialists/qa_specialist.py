@@ -39,13 +39,27 @@ def build_qa_specialist(
         """
 
         image = "quay.io/opendatahub/opendatahub-tests:latest"
-        host_modelcar_path = (Path(__file__).parent / "../../../../config-yaml/sample_modelcar_config.generated.yaml").resolve()
+        repo_root = Path.cwd()
+        generated_config = repo_root / "config-yaml" / "sample_modelcar_config.generated.yaml"
+        host_modelcar_path = generated_config
+        if not host_modelcar_path.exists():
+            fallback_config = repo_root / "config-yaml" / "sample_modelcar_config.base.yaml"
+            if fallback_config.exists():
+                print(
+                    f"[QA] Generated config not found at {generated_config}. "
+                    f"Falling back to base config: {fallback_config}",
+                    flush=True,
+                )
+                host_modelcar_path = fallback_config
+            else:
+                return f"QA_ERROR:MODELCAR_NOT_FOUND {generated_config}"
         REGISTRY_PULL_SECRET = os.environ.get("OCI_REGISTRY_PULL_SECRET", "")
         if not REGISTRY_PULL_SECRET:
             msg = "QA_ERROR:OCI_PULL_SECRET_MISSING OCI registry pull secret not set in environment."
             logger.error(msg)
             print(f"[QA] {msg}", flush=True)
             return msg
+        VLLM_RUNTIME_IMAGE = os.environ.get("VLLM_RUNTIME_IMAGE", runtime_image)
 
         host_kubeconfig = os.environ.get(
             "KUBECONFIG", os.path.expanduser("~/.kube/config")
@@ -94,7 +108,7 @@ def build_qa_specialist(
                 "-vv",
                 "tests/model_serving/model_runtime/model_validation/test_modelvalidation.py",
                 "--model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml",
-                f"--vllm-runtime-image={runtime_image}",
+                f"--vllm-runtime-image={VLLM_RUNTIME_IMAGE}",
                 "--supported-accelerator-type=Nvidia",
                 "--registry-host=registry.redhat.io",
                 "--snapshot-update",

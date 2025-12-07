@@ -71,11 +71,11 @@ def build_accelerator_specialist(
             {
             "gpu_available": true,
             "gpu_provider": "NVIDIA",
-            "vllm_image": "quay.io/opendatahub/vllm-cuda-runtime:latest"
+            "vllm_image": "registry.redhat.io/rhaiis/vllm-cuda-runtime-rhel9:latest"
             }
         """
         gpu_status, gpu_provider = check_gpu_availability()
-        vllm_image = get_vllm_runtime_image_from_template()
+        vllm_image = get_vllm_runtime_image_from_template(gpu_provider)
         
         metadata = {
             "gpu_available": gpu_status,
