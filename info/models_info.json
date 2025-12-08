@@ -1,1 +1,22 @@
-[]
+{
+  "granite-3.1-8b-instruct": {
+    "model_name": "granite-3.1-8b-instruct",
+    "image": "oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5",
+    "arguments": [],
+    "model_size_gb": 15.24,
+    "model_p_billion": 8.0,
+    "quantization_bits": null,
+    "required_vram_gb": 18,
+    "supported_arch": "amd64"
+  },
+  "whisper-large-v2-W4A16-G128": {
+    "model_name": "whisper-large-v2-W4A16-G128",
+    "image": "oci://registry.redhat.io/rhelai1/modelcar-whisper-large-v2-w4a16-g128:1.5",
+    "arguments": [],
+    "model_size_gb": 1.05,
+    "model_p_billion": null,
+    "quantization_bits": 4,
+    "required_vram_gb": null,
+    "supported_arch": "amd64"
+  }
+}

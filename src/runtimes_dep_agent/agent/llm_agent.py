@@ -46,6 +46,7 @@ class LLMAgent:
         if bootstrap_config:
             config = load_llm_model_config(bootstrap_config)
             self.precomputed_requirements = get_model_requirements(config)
+            self.bootstrap_config_path = bootstrap_config
             # Save precomputed requirements to info/models_info.json
             self._save_precomputed_requirements()
 
@@ -82,9 +83,14 @@ class LLMAgent:
             builder(
                 self.llm,
                 self._extract_final_text,
-                self.precomputed_requirements
-            )
-            for builder in builders
+                self.precomputed_requirements,
+            ) if builder is not build_config_specialist else
+            builder(
+                self.llm,
+                self._extract_final_text,
+                self.precomputed_requirements,
+                bootstrap_config_path=self.bootstrap_config_path,
+            ) for builder in builders
         ]
 
     def _create_supervisor(self):

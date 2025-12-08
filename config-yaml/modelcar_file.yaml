@@ -5,9 +5,6 @@ model-car:
   - name: whisper-large-v2-W4A16-G128
     image: oci://registry.redhat.io/rhelai1/modelcar-whisper-large-v2-w4a16-g128:1.5
     model_output_type: audio
-  - name: granite-3.1-8b-starter-v2
-    image: oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-starter-v2:1.5
-    model_output_type: text
   - name: Llama-3.1-8B-Instruct
     image: oci://registry.redhat.io/rhelai1/modelcar-llama-3-1-8b-instruct:1.5
     model_output_type: text
