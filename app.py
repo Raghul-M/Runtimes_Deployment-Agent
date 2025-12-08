@@ -50,6 +50,12 @@ if "agent_timestamps" not in st.session_state:
         "deployment": None,
         "qa": None
     }
+if "vllm_runtime_image" not in st.session_state:
+    # Check for environment variable first
+    vllm_image_env = os.environ.get("VLLM_RUNTIME_IMAGE")
+    st.session_state.vllm_runtime_image = vllm_image_env if vllm_image_env else None
+if "runtime_backend" not in st.session_state:
+    st.session_state.runtime_backend = None
 
 # Helper function to get value from extracted data with fallback
 def get_value(path: str, default):
@@ -245,14 +251,14 @@ def parse_gpu_info():
 with st.sidebar:
     st.title("Configuration")
     
-    # Gemini API Key input
-    st.subheader("Gemini API Key")
+    # Gemini API Key input (mandatory)
+    st.subheader("Gemini API Key *")
     api_key_input = st.text_input(
         "Enter your Gemini API Key",
         type="password",
         value=st.session_state.gemini_api_key or "",
         placeholder="Enter your Gemini API Key",
-        help="Get your API key to Run the Agent"
+        help="Get your API key to Run the Agent (required)"
     )
     
     if api_key_input:
@@ -261,15 +267,14 @@ with st.sidebar:
         os.environ["GEMINI_API_KEY"] = api_key_input
         st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
     
-    st.divider()
     
-    # OCI Registry Pull Secret input
-    st.subheader("OCI Registry Pull Secret")
+    # OCI Registry Pull Secret input (mandatory)
+    st.subheader("OCI Registry Pull Secret *")
     oci_secret_input = st.text_input(
         "Enter your OCI Registry Pull Secret",
         type="password",
         value=st.session_state.oci_pull_secret or "",
-        help="Enter your OCI registry pull secret for authentication"
+        help="Enter your OCI registry pull secret for authentication (required)"
     )
     
     if oci_secret_input:
@@ -277,6 +282,51 @@ with st.sidebar:
         # Set as environment variable immediately so it's available to the agent
         os.environ["OCI_REGISTRY_PULL_SECRET"] = oci_secret_input
         st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
+    
+    st.divider()
+    
+    # vLLM Runtime Image input (optional)
+    st.subheader("vLLM Runtime Image")
+    # Check environment variable if session state is not set
+    default_vllm_image = st.session_state.vllm_runtime_image or os.environ.get("VLLM_RUNTIME_IMAGE", "")
+    vllm_image_input = st.text_input(
+        "Enter vLLM Runtime Image",
+        value=default_vllm_image,
+        placeholder="e.g., quay.io/opendatahub/vllm-runtime:latest",
+        help="Specify the vLLM runtime image to use for deployment (optional). Can also be set via VLLM_RUNTIME_IMAGE environment variable."
+    )
+    
+    if vllm_image_input:
+        st.session_state.vllm_runtime_image = vllm_image_input
+        st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
+    
+    # Runtime Accelerator dropdown (optional)
+    st.subheader("Runtime Accelerator")
+    runtime_backend_options = [
+        "Nvidia - CUDA",
+        "AMD - ROCm",
+        "Intel-Gaudi",
+        "IBM Spyre - Spyre"
+    ]
+    
+    # Get current index for selectbox
+    current_index = 0  # Default to placeholder
+    if st.session_state.runtime_backend and st.session_state.runtime_backend in runtime_backend_options:
+        current_index = runtime_backend_options.index(st.session_state.runtime_backend) + 1  # +1 for placeholder
+    
+    runtime_backend_selected = st.selectbox(
+        "Select Runtime Accelerator",
+        options=["Select an option..."] + runtime_backend_options,
+        index=current_index,
+        help="Select the runtime accelerator for vLLM deployment (optional)"
+    )
+    
+    # Update session state only if a valid option is selected (not placeholder)
+    if runtime_backend_selected and runtime_backend_selected != "Select an option...":
+        st.session_state.runtime_backend = runtime_backend_selected
+        st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Selected</span>', unsafe_allow_html=True)
+    elif runtime_backend_selected == "Select an option...":
+        st.session_state.runtime_backend = None
     
     st.divider()
     
@@ -292,6 +342,8 @@ with st.sidebar:
         try:
             yaml_content = uploaded_file.read()
             st.session_state.yaml_config = yaml.safe_load(yaml_content)
+            # Store original YAML content to preserve exact format
+            st.session_state.yaml_content_raw = yaml_content
             st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Loaded</span>', unsafe_allow_html=True)
             
             # Display YAML content in expander
@@ -328,6 +380,8 @@ with st.sidebar:
         st.session_state.agent_output_text = None
         st.session_state.agent_command_output = None
         st.session_state.agent_start_time = None
+        st.session_state.yaml_content_raw = None
+        st.session_state.config_path = None
         st.session_state.agent_timestamps = {
             "supervisor": None,
             "configuration": None,
@@ -379,11 +433,17 @@ if not st.session_state.agent_started:
                         os.environ["OCI_REGISTRY_PULL_SECRET"] = st.session_state.oci_pull_secret
                     
                     # Save uploaded YAML to a file (YAML upload is mandatory)
+                    # Use original YAML content to preserve exact format
                     import tempfile
                     temp_dir = tempfile.gettempdir()
                     config_path = os.path.join(temp_dir, "modelcar_config.yaml")
-                    with open(config_path, 'w') as tmp_file:
-                        yaml.dump(st.session_state.yaml_config, tmp_file)
+                    with open(config_path, 'wb') as tmp_file:
+                        # Use original YAML content if available, otherwise dump parsed version
+                        if hasattr(st.session_state, 'yaml_content_raw') and st.session_state.yaml_content_raw:
+                            tmp_file.write(st.session_state.yaml_content_raw)
+                        else:
+                            # Fallback: dump parsed YAML if original content not available
+                            yaml.dump(st.session_state.yaml_config, tmp_file)
                     
                     st.session_state.config_path = config_path
                     st.session_state.agent_started = True
@@ -573,13 +633,28 @@ else:
                 with open(deployment_info_path, 'r', encoding='utf-8') as f:
                     deployment_info_text = f.read().strip()
                 
-                # Extract verdict for card and expander label
+                # Extract verdict for card and expander label from deployment_info.txt
+                # Parse the actual format from the file (e.g., "### Deployment Decision: NO-GO" or "**Verdict: GO**")
                 verdict = "GO"
                 verdict_color = "#28a745"  # Green for GO
-                if "**Verdict: NO-GO**" in deployment_info_text or "Verdict: NO-GO" in deployment_info_text:
+                
+                # Check for NO-GO patterns (case-insensitive)
+                deployment_info_upper = deployment_info_text.upper()
+                if any(pattern in deployment_info_upper for pattern in [
+                    "DEPLOYMENT DECISION: NO-GO",
+                    "DEPLOYMENT DECISION: NO GO",
+                    "VERDICT: NO-GO",
+                    "VERDICT: NO GO",
+                    "**VERDICT: NO-GO**",
+                    "**VERDICT: NO GO**"
+                ]):
                     verdict = "NO-GO"
                     verdict_color = "#dc3545"  # Red for NO-GO
-                elif "**Verdict: GO**" in deployment_info_text or "Verdict: GO" in deployment_info_text:
+                elif any(pattern in deployment_info_upper for pattern in [
+                    "DEPLOYMENT DECISION: GO",
+                    "VERDICT: GO",
+                    "**VERDICT: GO**"
+                ]):
                     verdict = "GO"
                     verdict_color = "#28a745"  # Green for GO
                 
