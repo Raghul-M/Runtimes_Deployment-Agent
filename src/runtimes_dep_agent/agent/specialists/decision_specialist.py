@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
+import os
 import re
 from pathlib import Path
 from typing import Callable
@@ -14,8 +16,11 @@ from langchain_core.tools import tool
 
 from . import SpecialistSpec
 
+logger = logging.getLogger(__name__)
 
-GPU_INFO_DEFAULT = Path("gpu_info") / "gpu_info.txt"
+
+GPU_INFO_DEFAULT = Path("info") / "gpu_info.txt"
+DEPLOYMENT_INFO_DEFAULT = Path("info") / "deployment_info.txt"
 
 
 def _parse_gpu_summary(text: str) -> tuple[int, float | None]:
@@ -268,7 +273,26 @@ def build_decision_specialist(
     def analyze_deployment_decision(request: str) -> str:
         """Delegate deployment fit decisions to the decision specialist."""
         result = agent.invoke({"messages": [{"role": "user", "content": request}]})
-        return extract_text(result)
+        output_text = extract_text(result)
+        
+        # Save deployment decision output to info/deployment_info.txt
+        try:
+            # Get project root directory (go up from src/runtimes_dep_agent/agent/specialists/decision_specialist.py)
+            # Path: src/runtimes_dep_agent/agent/specialists/decision_specialist.py
+            # Go up 5 levels to reach project root
+            current_file = Path(__file__)
+            project_root = current_file.parent.parent.parent.parent.parent
+            info_dir = project_root / "info"
+            info_dir.mkdir(parents=True, exist_ok=True)
+            
+            deployment_info_path = info_dir / "deployment_info.txt"
+            with open(deployment_info_path, 'w', encoding='utf-8') as f:
+                f.write(output_text)
+        except Exception as e:
+            # Log error but don't fail the tool
+            logger.error(f"Failed to save deployment info to {deployment_info_path}: {e}")
+        
+        return output_text
 
     analyze_deployment_decision.name = "analyze_deployment_decision"
 

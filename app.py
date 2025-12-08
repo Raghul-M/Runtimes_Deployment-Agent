@@ -2,16 +2,13 @@ import streamlit as st
 import yaml
 import os
 import time
+import subprocess
+import re
 from typing import List, Dict, Optional
-import google.generativeai as genai
 from datetime import datetime
 import plotly.graph_objects as go
 import pandas as pd
 import json
-from PIL import Image
-import io
-from langgraph.errors import GraphRecursionError
-from runtimes_dep_agent.agent.llm_agent import LLMAgent
 
 # Page configuration
 st.set_page_config(
@@ -35,86 +32,24 @@ if "gemini_api_key" not in st.session_state:
     st.session_state.gemini_api_key = None
 if "oci_pull_secret" not in st.session_state:
     st.session_state.oci_pull_secret = None
-if "vllm_runtime_image" not in st.session_state:
-    st.session_state.vllm_runtime_image = None
 if "extracted_data" not in st.session_state:
     st.session_state.extracted_data = None
-if "uploaded_image" not in st.session_state:
-    st.session_state.uploaded_image = None
 if "agent_result" not in st.session_state:
     st.session_state.agent_result = None
 if "agent_output_text" not in st.session_state:
     st.session_state.agent_output_text = None
-if "agent_instance" not in st.session_state:
-    st.session_state.agent_instance = None
-
-# Function to extract data from image using Gemini Vision
-def extract_data_from_image(image: Image.Image, api_key: str) -> Dict:
-    """Extract structured data from an image using Gemini Vision API."""
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        
-        prompt = """Analyze this image and extract deployment-related information. 
-        Return a JSON object with the following structure:
-        {
-            "configuration": {
-                "num_models": <number>,
-                "model_name": "<model name>",
-                "estimated_vram_gb": <number>,
-                "total_disk_footprint_gb": <number>,
-                "supported_architectures": "<architecture>"
-            },
-            "accelerator": {
-                "status": "<status>",
-                "provider": "<provider name>",
-                "compatibility": "<compatibility info>"
-            },
-            "deployment": {
-                "decision": "<GO or NO-GO>",
-                "available_gpu_memory_gb": <number>,
-                "required_gpu_memory_gb": <number>,
-                "conclusion": "<conclusion text>"
-            },
-            "qa": {
-                "status": "<passed or failed>",
-                "message": "<qa message>"
-            },
-            "reporting": {
-                "models_executed": <number>,
-                "status": "<status>",
-                "channel": "<channel name>"
-            },
-            "resources": {
-                "gpu_memory_available_gb": <number>,
-                "gpu_memory_required_gb": <number>,
-                "disk_space_gb": <number>
-            }
-        }
-        
-        Extract all numeric values and text fields you can find. If a field is not visible, use null or a reasonable default.
-        Return ONLY valid JSON, no additional text."""
-        
-        response = model.generate_content([prompt, image])
-        response_text = response.text.strip()
-        
-        # Try to extract JSON from markdown code blocks if present
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-        
-        extracted_data = json.loads(response_text)
-        return extracted_data
-        
-    except json.JSONDecodeError as e:
-        response_text = response.text.strip() if 'response' in locals() else "No response received"
-        st.error(f"Failed to parse JSON response: {str(e)}")
-        st.text(f"Raw response: {response_text}")
-        return {}
-    except Exception as e:
-        st.error(f"Error extracting data: {str(e)}")
-        return {}
+if "agent_command_output" not in st.session_state:
+    st.session_state.agent_command_output = None
+if "agent_start_time" not in st.session_state:
+    st.session_state.agent_start_time = None
+if "agent_timestamps" not in st.session_state:
+    st.session_state.agent_timestamps = {
+        "supervisor": None,
+        "configuration": None,
+        "accelerator": None,
+        "deployment": None,
+        "qa": None
+    }
 
 # Helper function to get value from extracted data with fallback
 def get_value(path: str, default):
@@ -130,6 +65,181 @@ def get_value(path: str, default):
         return value if value is not None else default
     except (KeyError, TypeError):
         return default
+
+# Function to load model information from info/models_info.json
+def load_model_info_from_json():
+    """Load model information from info/models_info.json file."""
+    models_info_path = os.path.join(os.path.dirname(__file__), "info", "models_info.json")
+    models = []
+    
+    if not os.path.exists(models_info_path):
+        return {"num_models": 0, "models": []}
+    
+    # Don't show data if agent hasn't started yet
+    if st.session_state.agent_start_time is None:
+        return {"num_models": 0, "models": []}
+    
+    # Check if file has been updated since agent started (only show if new data)
+    try:
+        file_mtime = os.path.getmtime(models_info_path)
+        # Only show if file was modified after agent started
+        if file_mtime < st.session_state.agent_start_time:
+            return {"num_models": 0, "models": []}
+        
+        # Check if file is empty (from reset)
+        if os.path.getsize(models_info_path) == 0:
+            return {"num_models": 0, "models": []}
+    except Exception:
+        pass
+    
+    try:
+        with open(models_info_path, 'r') as f:
+            content = f.read().strip()
+            if not content:  # Empty file
+                return {"num_models": 0, "models": []}
+            precomputed_requirements = json.loads(content)
+        
+        # Convert precomputed_requirements format to display format
+        for model_name, model_data in precomputed_requirements.items():
+            # Format parameter count
+            param_billion = model_data.get('model_p_billion')
+            if param_billion is not None:
+                if param_billion >= 1:
+                    parameter_count = f"{int(param_billion)} Billion" if param_billion == int(param_billion) else f"{param_billion} Billion"
+                else:
+                    parameter_count = f"{param_billion * 1000:.0f} Million"
+            else:
+                parameter_count = "Not specified"
+            
+            # Format quantization
+            quant_bits = model_data.get('quantization_bits')
+            if quant_bits is not None:
+                quantization = f"{quant_bits} bits"
+            else:
+                quantization = "Not specified"
+            
+            estimated_vram = model_data.get('required_vram_gb')
+            if estimated_vram is None:
+                estimated_vram = 0.0
+            
+            models.append({
+                "name": model_data.get('model_name', model_name),
+                "image": model_data.get('image', 'Not specified'),
+                "image_size_gb": model_data.get('model_size_gb', 0.0) or 0.0,
+                "parameter_count": parameter_count,
+                "quantization": quantization,
+                "estimated_vram_gb": estimated_vram,
+                "supported_arch": model_data.get('supported_arch', 'unknown')
+            })
+        
+        num_models = len(models)
+        
+    except Exception as e:
+        st.error(f"Error loading model info from {models_info_path}: {str(e)}")
+        return {"num_models": 0, "models": []}
+    
+    return {"num_models": num_models, "models": models}
+
+# Function to parse GPU info from gpu_info.txt
+def parse_gpu_info():
+    """Parse GPU information from info/gpu_info.txt file and return per-node details."""
+    gpu_info_path = os.path.join(os.path.dirname(__file__), "info", "gpu_info.txt")
+    gpu_data = {
+        "nodes": [],  # List of individual node details
+        "total_gpus": 0,
+        "total_nodes": 0
+    }
+    
+    if not os.path.exists(gpu_info_path):
+        return gpu_data
+    
+    # Don't show data if agent hasn't started yet
+    if st.session_state.agent_start_time is None:
+        return gpu_data
+    
+    # Check if file has been updated since agent started (only show if new data)
+    try:
+        file_mtime = os.path.getmtime(gpu_info_path)
+        file_size = os.path.getsize(gpu_info_path)
+        # Only show if file was modified after agent started and is not empty
+        if file_mtime < st.session_state.agent_start_time or file_size == 0:
+            return gpu_data
+    except Exception:
+        pass
+    
+    try:
+        with open(gpu_info_path, 'r') as f:
+            content = f.read()
+        
+        # Split content by blank lines to get individual node entries
+        entries = content.strip().split('\n\n')
+        
+        for entry in entries:
+            entry = entry.strip()
+            if not entry or 'Cloud Provider' not in entry:
+                continue
+            
+            # Parse individual node
+            node = {
+                "cloud_provider": "Unknown",
+                "instance_type": "Unknown",
+                "gpu_provider": "Unknown",
+                "gpu_product": "Unknown",
+                "per_gpu_memory_gb": 0.0,
+                "allocatable_gpus": 0,
+                "node_ram_gb": 0.0,
+                "node_storage_gb": 0.0,
+                "node_name": "Unknown"
+            }
+            
+            lines = entry.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and '•' in line:
+                    parts = line.replace('•', '').strip().split(':', 1)
+                    if len(parts) == 2:
+                        key = parts[0].strip()
+                        value = parts[1].strip()
+                        
+                        if key == "Cloud Provider":
+                            node["cloud_provider"] = value
+                        elif key == "Instance Type":
+                            node["instance_type"] = value
+                        elif key == "GPU Provider":
+                            node["gpu_provider"] = value
+                        elif key == "GPU Product":
+                            node["gpu_product"] = value
+                        elif key == "Per-GPU Memory":
+                            match = re.search(r'(\d+\.?\d*)', value)
+                            if match:
+                                node["per_gpu_memory_gb"] = float(match.group(1))
+                        elif key == "Allocatable GPUs":
+                            try:
+                                node["allocatable_gpus"] = int(value)
+                            except ValueError:
+                                pass
+                        elif key == "Node RAM":
+                            match = re.search(r'(\d+\.?\d*)', value)
+                            if match:
+                                node["node_ram_gb"] = float(match.group(1))
+                        elif key == "Node Storage":
+                            match = re.search(r'(\d+\.?\d*)', value)
+                            if match:
+                                node["node_storage_gb"] = float(match.group(1))
+                        elif key == "Node Name":
+                            node["node_name"] = value
+            
+            # Add node to list if it has valid data
+            if node["node_name"] != "Unknown" or node["allocatable_gpus"] > 0:
+                gpu_data["nodes"].append(node)
+                gpu_data["total_gpus"] += node["allocatable_gpus"]
+        
+        gpu_data["total_nodes"] = len(gpu_data["nodes"])
+        
+    except Exception as e:
+        st.error(f"Error parsing GPU info: {str(e)}")
+    
+    return gpu_data
 
 # Sidebar for API key and YAML upload
 with st.sidebar:
@@ -147,11 +257,9 @@ with st.sidebar:
     
     if api_key_input:
         st.session_state.gemini_api_key = api_key_input
-        try:
-            genai.configure(api_key=st.session_state.gemini_api_key)
-            st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Error configuring API key: {str(e)}")
+        # Set as environment variable immediately so it's available to the agent
+        os.environ["GEMINI_API_KEY"] = api_key_input
+        st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
     
     st.divider()
     
@@ -166,65 +274,18 @@ with st.sidebar:
     
     if oci_secret_input:
         st.session_state.oci_pull_secret = oci_secret_input
+        # Set as environment variable immediately so it's available to the agent
+        os.environ["OCI_REGISTRY_PULL_SECRET"] = oci_secret_input
         st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
     
     st.divider()
     
-    # vLLM Runtime Image input
-    st.subheader("vLLM Runtime Image")
-    vllm_image_input = st.text_input(
-        "Enter vLLM Runtime Image",
-        value=st.session_state.vllm_runtime_image or "",
-        placeholder="e.g., quay.io/example/vllm-runtime:latest",
-        help="Enter the vLLM runtime image URL"
-    )
-    
-    if vllm_image_input:
-        st.session_state.vllm_runtime_image = vllm_image_input
-        st.markdown('<span style="background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">Configured</span>', unsafe_allow_html=True)
-    
-    st.divider()
-    
-    # Image upload for data extraction
-    st.subheader("Upload Image for Data Extraction")
-    uploaded_image = st.file_uploader(
-        "Upload an image to extract deployment data",
-        type=['png', 'jpg', 'jpeg'],
-        help="Upload a screenshot or image containing deployment information"
-    )
-    
-    if uploaded_image is not None:
-        st.session_state.uploaded_image = uploaded_image
-        # Display uploaded image
-        image = Image.open(uploaded_image)
-        st.image(image, caption="Uploaded Image", use_container_width=True)
-        
-        # Extract data from image button
-        if st.button("Extract Data from Image", use_container_width=True):
-            if not st.session_state.gemini_api_key:
-                st.error("⚠️ Please enter your Gemini API key first!")
-            else:
-                with st.spinner("Extracting data from image..."):
-                    try:
-                        extracted_data = extract_data_from_image(
-                            image, 
-                            st.session_state.gemini_api_key
-                        )
-                        st.session_state.extracted_data = extracted_data
-                        st.success("✅ Data extracted successfully!")
-                        with st.expander("View Extracted Data"):
-                            st.json(extracted_data)
-                    except Exception as e:
-                        st.error(f"Error extracting data: {str(e)}")
-    
-    st.divider()
-    
-    # YAML file upload
-    st.subheader("Upload Modelcar Images YAML File")
+    # YAML file upload (mandatory)
+    st.subheader("Upload Modelcar Images YAML File *")
     uploaded_file = st.file_uploader(
-        "Choose a YAML file",
+        "Choose a YAML file (required)",
         type=['yaml', 'yml'],
-        help="Upload your Modelcar Images YAML file"
+        help="Upload your Modelcar Images YAML file (required)"
     )
     
     if uploaded_file is not None:
@@ -244,14 +305,36 @@ with st.sidebar:
     st.divider()
     
     # Reset button
-    if st.button("Reset", use_container_width=True):
+    if st.button("Reset", width='stretch'):
+        # Clear info folder files
+        info_dir = os.path.join(os.path.dirname(__file__), "info")
+        files_to_clear = ["models_info.json", "gpu_info.txt", "deployment_info.txt"]
+        for filename in files_to_clear:
+            file_path = os.path.join(info_dir, filename)
+            if os.path.exists(file_path):
+                try:
+                    # Clear file content by writing empty string
+                    with open(file_path, 'w') as f:
+                        f.write("")
+                except Exception as e:
+                    st.error(f"Error clearing {filename}: {str(e)}")
+        
+        # Reset session state
         st.session_state.agent_started = False
         st.session_state.workflow_completed = False
         st.session_state.workflow_step = 0
         st.session_state.start_time = None
         st.session_state.agent_result = None
         st.session_state.agent_output_text = None
-        st.session_state.agent_instance = None
+        st.session_state.agent_command_output = None
+        st.session_state.agent_start_time = None
+        st.session_state.agent_timestamps = {
+            "supervisor": None,
+            "configuration": None,
+            "accelerator": None,
+            "deployment": None,
+            "qa": None
+        }
         st.rerun()
 
 # Main interface
@@ -279,48 +362,38 @@ st.markdown("---")
 if not st.session_state.agent_started:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("Start AI Agent", use_container_width=True, type="primary"):
+        if st.button("Start AI Agent", width='stretch', type="primary"):
             if not st.session_state.gemini_api_key:
                 st.error("⚠️ Please enter your Gemini API key in the sidebar first!")
             elif not st.session_state.oci_pull_secret:
                 st.error("⚠️ Please enter your OCI Registry Pull Secret in the sidebar first!")
+            elif not st.session_state.yaml_config:
+                st.error("⚠️ Please upload a YAML configuration file in the sidebar first!")
             else:
-                # Initialize and run the actual agent
-                with st.spinner("Initializing agent..."):
-                    try:
-                        # Determine config path - use uploaded YAML if available, otherwise default
-                        config_path = None
-                        if st.session_state.yaml_config:
-                            # Save uploaded YAML to temp file if needed
-                            import tempfile
-                            with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as tmp_file:
-                                yaml.dump(st.session_state.yaml_config, tmp_file)
-                                config_path = tmp_file.name
-                        else:
-                            config_path = "config-yaml/sample_modelcar_config.yaml"
-                        
-                        # Initialize agent
-                        agent = LLMAgent(
-                            api_key=st.session_state.gemini_api_key,
-                            bootstrap_config=config_path,
-                        )
-                        st.session_state.agent_instance = agent
-                        
-                        # Run supervisor
-                        SUPERVISOR_TRIGGER_MESSAGE = (
-                            "Start supervisor agent operation. Receive model-car configuration report "
-                            "from config specialist and make deployment decisions."
-                        )
-                        
-                        st.session_state.agent_started = True
-                        st.session_state.start_time = time.time()
-                        st.session_state.workflow_step = 1  # Start at step 1
-                        
-                        # Run agent in background (will be processed in the workflow)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Failed to initialize agent: {str(e)}")
-                        st.exception(e)
+                # Environment variables are already set when user enters them in sidebar
+                try:
+                    # Ensure environment variables are set (they should already be set from sidebar inputs)
+                    if st.session_state.gemini_api_key:
+                        os.environ["GEMINI_API_KEY"] = st.session_state.gemini_api_key
+                    if st.session_state.oci_pull_secret:
+                        os.environ["OCI_REGISTRY_PULL_SECRET"] = st.session_state.oci_pull_secret
+                    
+                    # Save uploaded YAML to a file (YAML upload is mandatory)
+                    import tempfile
+                    temp_dir = tempfile.gettempdir()
+                    config_path = os.path.join(temp_dir, "modelcar_config.yaml")
+                    with open(config_path, 'w') as tmp_file:
+                        yaml.dump(st.session_state.yaml_config, tmp_file)
+                    
+                    st.session_state.config_path = config_path
+                    st.session_state.agent_started = True
+                    st.session_state.start_time = time.time()
+                    st.session_state.workflow_step = 1  # Start at step 1
+                    
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to initialize: {str(e)}")
+                    st.exception(e)
     st.info("Click 'Start AI Agent' to begin running the Agent")
 else:
     # Status checks
@@ -350,7 +423,7 @@ else:
         {"name": "Calling Accelerator Agent", "status": "pending"},
         {"name": "Calling Deployment Specialist", "status": "pending"},
         {"name": "Calling QA Specialist", "status": "pending"},
-        {"name": "Calling Reporting Agent", "status": "pending"},
+        # {"name": "Calling Reporting Agent", "status": "pending"},
     ]
     
     # Update workflow steps based on current step
@@ -361,7 +434,9 @@ else:
             workflow_steps[i]["status"] = "in_progress"
     
     # Display progress
-    progress_value = st.session_state.workflow_step / len(workflow_steps)
+    progress_value = st.session_state.workflow_step / len(workflow_steps) if len(workflow_steps) > 0 else 0.0
+    # Ensure progress value is between 0 and 1
+    progress_value = max(0.0, min(1.0, progress_value))
     st.progress(progress_value)
     
     # Display step statuses with badges
@@ -379,77 +454,155 @@ else:
     
     st.markdown("---")
     
-    # Display actual agent output if available
-    if st.session_state.agent_output_text:
-        with st.expander("📋 Full Agent Output", expanded=False):
-            st.markdown(f"```\n{st.session_state.agent_output_text}\n```")
-    
-    st.markdown("---")
+    # Show loader/spinner above all outputs when agent is running
+    if st.session_state.workflow_step >= 1 and st.session_state.workflow_step < 6 and not st.session_state.workflow_completed:
+        with st.spinner("Running supervisor agent..."):
+            time.sleep(0.1)  # Small delay to show spinner
+        st.markdown("")  # Add spacing after spinner
     
     # Display outputs based on workflow step
-    if st.session_state.workflow_step >= 1:
-        st.subheader("Configuration Agent Output")
-        num_models = get_value("configuration.num_models", 2)
-        model_name = get_value("configuration.model_name", "granite-3.1-8b-instruct")
-        estimated_vram = get_value("configuration.estimated_vram_gb", 18)
-        disk_footprint = get_value("configuration.total_disk_footprint_gb", 15.24)
-        supported_arch = get_value("configuration.supported_architectures", "amd64")
+    # Only show Configuration Agent Results if agent has started
+    if st.session_state.workflow_step >= 1 and st.session_state.agent_start_time is not None:
+        st.subheader("Configuration Agent Results")
         
-        st.markdown(f"""
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
-        <p><strong>Number of models found in Modelcar YAML:</strong> {num_models}</p>
-        <p>The Configuration Specialist reports the following requirements for the preloaded model:</p>
-        <ul>
-        <li><strong>Model Name</strong>: <code>{model_name}</code></li>
-        <li><strong>Estimated VRAM</strong>: {estimated_vram} GB</li>
-        <li><strong>Total Disk Footprint</strong>: {disk_footprint} GB</li>
-        <li><strong>Supported Architectures</strong>: {supported_arch}</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        # Load model information from info/models_info.json
+        model_info = load_model_info_from_json()
+        num_models = model_info["num_models"]
+        models = model_info["models"]
+        
+        # Only display if we have models (file was updated)
+        if num_models > 0:
+            # Display number of models at the top
+            st.markdown(f"""
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8f9fa;">
+            <p style="font-size: 1.2em; font-weight: bold; color: #28a745;">Number of models found in Modelcar YAML: {num_models}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Display all model details in a single expandable dropdown
+            if models:
+                with st.expander("Model Details", expanded=False):
+                    for idx, model in enumerate(models, 1):
+                        st.markdown(f"""
+                        <div style="padding: 12px; margin-bottom: 16px; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #28a745;">
+                        <h4 style="margin-top: 0; margin-bottom: 12px; color: #28a745;">Model {idx}: {model.get('name', 'Unknown')}</h4>
+                        <ul style="list-style-type: none; padding-left: 0; margin-bottom: 0;">
+                        <li><strong>Model Name</strong>: <code>{model.get('name', 'Unknown')}</code></li>
+                        <li><strong>Image</strong>: {model.get('image', 'Not specified')}</li>
+                        <li><strong>Image Size</strong>: {model.get('image_size_gb', 0.0)} GB</li>
+                        <li><strong>Parameter Count</strong>: {model.get('parameter_count', 'Not specified')}</li>
+                        <li><strong>Quantization</strong>: {model.get('quantization', 'Not specified')}</li>
+                        <li><strong>Estimated VRAM</strong>: {model.get('estimated_vram_gb', 0.0)} GB</li>
+                        <li><strong>Supported Architectures</strong>: {model.get('supported_arch', 'unknown')}</li>
+                        </ul>
+                        </div>
+                        """, unsafe_allow_html=True)
+        else:
+            if st.session_state.workflow_step >= 2:
+                st.info("Configuration Agent is processing. Please wait...")
+        
         st.markdown("---")
     
     if st.session_state.workflow_step >= 2:
-        st.subheader("Accelerator Agent Output")
-        accelerator_status = get_value("accelerator.status", "GPU available")
-        accelerator_provider = get_value("accelerator.provider", "NVIDIA")
-        accelerator_compatibility = get_value("accelerator.compatibility", "The available hardware supports CUDA-compatible models and vLLM-Spyre-x86.")
+        st.subheader("Accelerator Agent Results")
         
-        st.markdown(f"""
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
-        <h3>Accelerator Summary</h3>
-        <p>The <strong>Accelerator Specialist</strong> reports the following hardware availability:</p>
-        <ul>
-        <li><strong>Status</strong>: {accelerator_status}</li>
-        <li><strong>Provider</strong>: {accelerator_provider}</li>
-        <li><strong>Compatibility</strong>: {accelerator_compatibility}</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        # Fetch latest GPU info from gpu_info.txt
+        gpu_info = parse_gpu_info()
+        
+        # Only display if we have GPU nodes (file was updated)
+        if gpu_info["total_nodes"] > 0:
+            # Display total number of GPU nodes
+            total_nodes = gpu_info["total_nodes"]
+            total_gpus = gpu_info["total_gpus"]
+            
+            st.markdown(f"""
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8f9fa;">
+            <h3>Accelerator Summary</h3>
+            <p style="font-size: 1.2em; font-weight: bold; color: #28a745; margin-bottom: 8px;">Total Number of GPU Nodes: {total_nodes}</p>
+            <p style="font-size: 1.1em; font-weight: bold; color: #28a745; margin-bottom: 12px;">Total Number of GPUs Available: {total_gpus}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Display details for each GPU node in expandable sections
+            if gpu_info["nodes"]:
+                for idx, node in enumerate(gpu_info["nodes"], 1):
+                    accelerator_status = "GPU available" if node["allocatable_gpus"] > 0 else "No GPU available"
+                    
+                    with st.expander(f"GPU Node {idx} Details - {node['node_name']}", expanded=False):
+                        st.markdown(f"""
+                        <div style="padding: 12px; background-color: #f8f9fa; border-radius: 4px;">
+                        <ul style="list-style-type: none; padding-left: 0;">
+                        <li><strong>Node Name</strong>: {node['node_name']}</li>
+                        <li><strong>Status</strong>: {accelerator_status}</li>
+                        <li><strong>Cloud Provider</strong>: {node['cloud_provider']}</li>
+                        <li><strong>Instance Type</strong>: {node['instance_type']}</li>
+                        <li><strong>GPU Provider</strong>: {node['gpu_provider']}</li>
+                        <li><strong>GPU Product</strong>: {node['gpu_product']}</li>
+                        <li><strong>Per-GPU Memory</strong>: {node['per_gpu_memory_gb']} GB</li>
+                        <li><strong>Allocatable GPUs</strong>: {node['allocatable_gpus']}</li>
+                        <li><strong>Node RAM</strong>: {node['node_ram_gb']} GB</li>
+                        <li><strong>Node Storage</strong>: {node['node_storage_gb']} GB</li>
+                        </ul>
+                        </div>
+                        """, unsafe_allow_html=True)
+        else:
+            st.info("Accelerator Agent is processing. Please wait...")
+        
         st.markdown("---")
     
     if st.session_state.workflow_step >= 3:
-        st.subheader("Deployment Specialist Output")
-        deployment_decision = get_value("deployment.decision", "GO")
-        available_gpu_memory = get_value("deployment.available_gpu_memory_gb", 44.99)
-        required_gpu_memory = get_value("deployment.required_gpu_memory_gb", 18)
-        deployment_conclusion = get_value("deployment.conclusion", "The single available GPU meets the memory requirements for the model.")
+        st.subheader("Deployment Specialist Results")
         
-        st.markdown(f"""
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
-        <h3>Deployment Decision</h3>
-        <p>The <strong>Decision Specialist</strong> has issued a <strong>{deployment_decision}</strong> for deployment. The analysis indicates that the cluster's resources are sufficient:</p>
-        <ul>
-        <li><strong>Available GPU Memory</strong>: {available_gpu_memory} GB</li>
-        <li><strong>Required GPU Memory</strong>: {required_gpu_memory} GB</li>
-        <li><strong>Conclusion</strong>: {deployment_conclusion}</li>
-        </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        # Load deployment info from info/deployment_info.txt
+        deployment_info_path = os.path.join(os.path.dirname(__file__), "info", "deployment_info.txt")
+        
+        # Check if file exists and has been updated since agent started
+        file_exists_and_updated = False
+        if os.path.exists(deployment_info_path) and st.session_state.agent_start_time is not None:
+            try:
+                file_mtime = os.path.getmtime(deployment_info_path)
+                file_size = os.path.getsize(deployment_info_path)
+                # Only show if file was modified after agent started and is not empty
+                if file_mtime >= st.session_state.agent_start_time and file_size > 0:
+                    file_exists_and_updated = True
+            except Exception:
+                pass
+        
+        if file_exists_and_updated:
+            try:
+                with open(deployment_info_path, 'r', encoding='utf-8') as f:
+                    deployment_info_text = f.read().strip()
+                
+                # Extract verdict for card and expander label
+                verdict = "GO"
+                verdict_color = "#28a745"  # Green for GO
+                if "**Verdict: NO-GO**" in deployment_info_text or "Verdict: NO-GO" in deployment_info_text:
+                    verdict = "NO-GO"
+                    verdict_color = "#dc3545"  # Red for NO-GO
+                elif "**Verdict: GO**" in deployment_info_text or "Verdict: GO" in deployment_info_text:
+                    verdict = "GO"
+                    verdict_color = "#28a745"  # Green for GO
+                
+                # Display Deployment Status in a card before dropdown
+                st.markdown(f"""
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8f9fa;">
+                <p style="font-size: 1.2em; font-weight: bold; color: {verdict_color}; margin-bottom: 8px;">Deployment Status: {verdict}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Display in expandable dropdown
+                with st.expander(f"Deployment Decision Details", expanded=False):
+                    # Render the markdown content using Streamlit's native markdown renderer
+                    st.markdown(deployment_info_text)
+            except Exception as e:
+                st.error(f"Error reading deployment info from {deployment_info_path}: {str(e)}")
+        else:
+            st.info("Deployment Specialist is processing. Please wait...")
+        
         st.markdown("---")
     
     if st.session_state.workflow_step >= 4:
-        st.subheader("QA Specialist Output")
+        st.subheader("QA Specialist Results")
         qa_status = get_value("qa.status", "passed")
         qa_message = get_value("qa.message", "The test confirmed that the model serving runtime was deployed correctly, the model was loaded, and it responded successfully to inference requests. No immediate action is required.")
         
@@ -461,33 +614,34 @@ else:
         """, unsafe_allow_html=True)
         st.markdown("---")
     
-    if st.session_state.workflow_step >= 5:
-        st.subheader("Reporting Agent Output")
-        elapsed_time = time.time() - st.session_state.start_time
-        models_executed = get_value("reporting.models_executed", 2)
-        reporting_status = get_value("reporting.status", "Deployment completed successfully")
-        reporting_channel = get_value("reporting.channel", "#deployment_agent_report")
-        
-        st.markdown(f"""
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
-        <h3>Slack Notification</h3>
-        <p>The <strong>Reporting Agent</strong> has successfully sent the deployment summary to Slack channel <a href="https://slack.com" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;"><strong>{reporting_channel}</strong></a>.</p>
-        <p><strong>Summary sent:</strong></p>
-        <ul>
-        <li><strong>Models Executed</strong>: {models_executed}</li>
-        <li><strong>Time Taken</strong>: {elapsed_time:.2f} seconds</li>
-        <li><strong>Status</strong>: {reporting_status}</li>
-        <li><strong>Channel</strong>: <a href="https://slack.com" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">{reporting_channel}</a></li>
-        </ul>
-        <p style="margin-top: 12px; color: #28a745;"><strong>✓ Message delivered successfully</strong></p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.markdown("---")
+    # if st.session_state.workflow_step >= 5:
+    #     st.subheader("Reporting Agent Results")
+    #     elapsed_time = time.time() - st.session_state.start_time
+    #     models_executed = get_value("reporting.models_executed", 2)
+    #     reporting_status = get_value("reporting.status", "Deployment completed successfully")
+    #     reporting_channel = get_value("reporting.channel", "#deployment_agent_report")
+    #     
+    #     st.markdown(f"""
+    #     <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
+    #     <h3>Slack Notification</h3>
+    #     <p>The <strong>Reporting Agent</strong> has successfully sent the deployment summary to Slack channel <a href="https://slack.com" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;"><strong>{reporting_channel}</strong></a>.</p>
+    #     <p><strong>Summary sent:</strong></p>
+    #     <ul>
+    #     <li><strong>Models Executed</strong>: {models_executed}</li>
+    #     <li><strong>Time Taken</strong>: {elapsed_time:.2f} seconds</li>
+    #     <li><strong>Status</strong>: {reporting_status}</li>
+    #     <li><strong>Channel</strong>: <a href="https://slack.com" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">{reporting_channel}</a></li>
+    #     </ul>
+    #     <p style="margin-top: 12px; color: #28a745;"><strong>✓ Message delivered successfully</strong></p>
+    #     </div>
+    #     """, unsafe_allow_html=True)
+    #     st.markdown("---")
     
-    if st.session_state.workflow_step >= 6:
+    if st.session_state.workflow_step >= 5:
         st.subheader("Summary")
         elapsed_time = time.time() - st.session_state.start_time
-        models_executed_summary = get_value("reporting.models_executed", 2)
+        # models_executed_summary = get_value("reporting.models_executed", 2)
+        models_executed_summary = len(load_model_info_from_json()["models"]) if load_model_info_from_json()["models"] else 0
         
         col1, col2 = st.columns(2)
         with col1:
@@ -505,27 +659,93 @@ else:
         tab1, tab2 = st.tabs(["Agent Execution Timeline", "Resource Usage"])
         
         with tab1:
-            # Agent execution timeline
-            agent_data = pd.DataFrame({
-                'Agent': ['Supervisor', 'Configuration', 'Accelerator', 'Deployment', 'QA', 'Reporting'],
-                'Start Time': [0, elapsed_time*0.15, elapsed_time*0.3, elapsed_time*0.5, elapsed_time*0.7, elapsed_time*0.85],
-                'Duration': [elapsed_time*0.15, elapsed_time*0.15, elapsed_time*0.2, elapsed_time*0.2, elapsed_time*0.15, elapsed_time*0.15],
-                'Status': ['Completed', 'Completed', 'Completed', 'Completed', 'Completed', 'Completed']
-            })
+            # Agent execution timeline with actual timestamps
+            agent_timestamps = st.session_state.agent_timestamps
+            agent_start = st.session_state.agent_start_time if st.session_state.agent_start_time else time.time() - elapsed_time
+            
+            # Calculate actual durations and start times
+            agents_data = []
+            
+            # Supervisor Agent - from start until agent_output_text is available
+            if agent_timestamps["supervisor"]:
+                supervisor_start = 0
+                supervisor_duration = agent_timestamps["supervisor"] - agent_start
+                agents_data.append({
+                    'Agent': 'Supervisor',
+                    'Start Time': supervisor_start,
+                    'Duration': supervisor_duration,
+                    'Status': 'Completed'
+                })
+            
+            # Configuration Agent - from start until models_info.json appears
+            if agent_timestamps["configuration"]:
+                config_start = 0
+                config_duration = agent_timestamps["configuration"] - agent_start
+                agents_data.append({
+                    'Agent': 'Configuration',
+                    'Start Time': config_start,
+                    'Duration': config_duration,
+                    'Status': 'Completed'
+                })
+            
+            # Accelerator Agent - from start until gpu_info.txt appears
+            if agent_timestamps["accelerator"]:
+                accel_start = 0
+                accel_duration = agent_timestamps["accelerator"] - agent_start
+                agents_data.append({
+                    'Agent': 'Accelerator',
+                    'Start Time': accel_start,
+                    'Duration': accel_duration,
+                    'Status': 'Completed'
+                })
+            
+            # Deployment Specialist - from start until deployment_info.txt appears
+            if agent_timestamps["deployment"]:
+                deploy_start = 0
+                deploy_duration = agent_timestamps["deployment"] - agent_start
+                agents_data.append({
+                    'Agent': 'Deployment',
+                    'Start Time': deploy_start,
+                    'Duration': deploy_duration,
+                    'Status': 'Completed'
+                })
+            
+            # QA Specialist - skip for now as requested
+            
+            # Create DataFrame from actual data
+            if agents_data:
+                agent_data = pd.DataFrame(agents_data)
+            else:
+                # Fallback to estimated times if no timestamps available yet
+                agent_data = pd.DataFrame({
+                    'Agent': ['Supervisor', 'Configuration', 'Accelerator', 'Deployment'],
+                    'Start Time': [0, elapsed_time*0.2, elapsed_time*0.4, elapsed_time*0.6],
+                    'Duration': [elapsed_time*0.2, elapsed_time*0.2, elapsed_time*0.2, elapsed_time*0.2],
+                    'Status': ['Completed', 'Completed', 'Completed', 'Completed']
+                })
             
             fig_timeline = go.Figure()
             colors = ['#28a745', '#007bff', '#17a2b8', '#ffc107', '#28a745', '#6c757d']
             
             for i, row in agent_data.iterrows():
+                # Format duration text: show in minutes if > 99 seconds
+                duration = row['Duration']
+                if duration > 99:
+                    duration_text = f"{duration / 60:.2f}m"
+                    hover_duration = f"{duration / 60:.2f} minutes ({duration:.2f}s)"
+                else:
+                    duration_text = f"{duration:.2f}s"
+                    hover_duration = f"{duration:.2f}s"
+                
                 fig_timeline.add_trace(go.Bar(
                     x=[row['Agent']],
                     y=[row['Duration']],
                     base=[row['Start Time']],
                     marker_color=colors[i],
                     name=row['Agent'],
-                    text=[f"{row['Duration']:.2f}s"],
+                    text=[duration_text],
                     textposition='inside',
-                    hovertemplate=f"<b>{row['Agent']}</b><br>Duration: {row['Duration']:.2f}s<br>Status: {row['Status']}<extra></extra>"
+                    hovertemplate=f"<b>{row['Agent']}</b><br>Duration: {hover_duration}<br>Status: {row['Status']}<extra></extra>"
                 ))
             
             fig_timeline.update_layout(
@@ -537,7 +757,7 @@ else:
                 showlegend=False,
                 hovermode='closest'
             )
-            st.plotly_chart(fig_timeline, use_container_width=True)
+            st.plotly_chart(fig_timeline, width='stretch')
         
         with tab2:
             # Resource usage chart
@@ -568,47 +788,98 @@ else:
                 height=400,
                 showlegend=False
             )
-            st.plotly_chart(fig_resources, use_container_width=True)
+            st.plotly_chart(fig_resources, width='stretch')
         
         st.session_state.workflow_completed = True
         st.markdown("---")
     
-    # Auto-advance workflow steps and run agent
+    # Auto-advance workflow steps and run agent command
     if not st.session_state.workflow_completed and st.session_state.workflow_step < 6:
-        # Run the actual agent if not already run
-        if st.session_state.workflow_step == 1 and st.session_state.agent_instance and not st.session_state.agent_result:
+        # Run the actual agent command when workflow starts
+        if st.session_state.workflow_step == 1 and not st.session_state.agent_command_output:
+            # Set agent start time for timeline tracking
+            if st.session_state.agent_start_time is None:
+                st.session_state.agent_start_time = time.time()
+            
             placeholder = st.empty()
             with placeholder:
                 with st.spinner("Running supervisor agent..."):
                     try:
-                        SUPERVISOR_TRIGGER_MESSAGE = (
-                            "Start supervisor agent operation. Receive model-car configuration report "
-                            "from config specialist and make deployment decisions."
+                        # Run the CLI command: agent --config <config_path>
+                        config_path = st.session_state.config_path
+                        
+                        # Find the agent command - try venv first, then system PATH
+                        project_dir = os.path.dirname(os.path.abspath(__file__))
+                        venv_agent = os.path.join(project_dir, ".venv", "bin", "agent")
+                        cmd = None
+                        
+                        if os.path.exists(venv_agent):
+                            cmd = [venv_agent, "--config", config_path]
+                        else:
+                            # Try to find agent in PATH
+                            import shutil
+                            agent_path = shutil.which("agent")
+                            if agent_path:
+                                cmd = [agent_path, "--config", config_path]
+                            else:
+                                # Fallback: use Python module directly
+                                python_cmd = shutil.which("python3") or shutil.which("python")
+                                if python_cmd:
+                                    cmd = [python_cmd, "-m", "runtimes_dep_agent.execute_agent", "--config", config_path]
+                                else:
+                                    raise FileNotFoundError("Could not find 'agent' command or Python. Make sure the package is installed.")
+                        
+                        # Ensure venv's bin is in PATH
+                        env = os.environ.copy()
+                        venv_bin = os.path.join(project_dir, ".venv", "bin")
+                        if os.path.exists(venv_bin):
+                            env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
+                        
+                        # Run the command and capture output
+                        result = subprocess.run(
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=300,  # 5 minute timeout
+                            env=env,
+                            cwd=project_dir  # Run from project directory
                         )
-                        result = st.session_state.agent_instance.run_supervisor(SUPERVISOR_TRIGGER_MESSAGE)
-                        output_text = st.session_state.agent_instance.extract_final_text(result)
-                        st.session_state.agent_result = result
-                        st.session_state.agent_output_text = output_text
-                        # Advance to show configuration output
+                        
+                        # Store the output (include return code info)
+                        output = result.stdout + result.stderr
+                        if result.returncode != 0:
+                            output = f"Command exited with code {result.returncode}\n\n{output}"
+                        
+                        st.session_state.agent_command_output = output
+                        st.session_state.agent_output_text = output
+                        
+                        # Track supervisor completion time (when agent_output_text is available)
+                        if st.session_state.agent_timestamps["supervisor"] is None:
+                            st.session_state.agent_timestamps["supervisor"] = time.time()
+                        
+                        # Advance to next step
                         st.session_state.workflow_step = 2
-                    except GraphRecursionError:
-                        st.session_state.agent_output_text = "Error: maximum recursion depth reached."
+                    except subprocess.TimeoutExpired:
+                        st.session_state.agent_command_output = "Error: Command timed out after 5 minutes"
+                        st.session_state.agent_output_text = "Error: Command timed out after 5 minutes"
                         st.session_state.workflow_step = 6
                     except Exception as e:
-                        st.session_state.agent_output_text = f"Error during execution: {str(e)}"
+                        st.session_state.agent_command_output = f"Error running agent command: {str(e)}"
+                        st.session_state.agent_output_text = f"Error running agent command: {str(e)}"
                         st.session_state.workflow_step = 6
-            placeholder.empty()
             st.rerun()
         elif st.session_state.workflow_step >= 2 and st.session_state.workflow_step < 6:
-            # Simulate progress through remaining steps
-            placeholder = st.empty()
-            with placeholder:
-                with st.spinner(f"Processing {workflow_steps[st.session_state.workflow_step]['name']}..."):
-                    time.sleep(1.5)  # Shorter delay since agent already ran
-            placeholder.empty()
+            # Simulate progress through remaining workflow steps (no spinner needed, already shown above)
+            time.sleep(1.5)  # Shorter delay since agent already ran
             st.session_state.workflow_step += 1
             st.rerun()
 
+# Display Full Agent Output at the bottom after all charts
+if st.session_state.agent_output_text:
+    st.subheader("Full Agent Output")
+    with st.expander("📋 Full Agent Output", expanded=False):
+        st.markdown(f"```\n{st.session_state.agent_output_text}\n```")
+st.markdown("---")
 # Footer at the bottom
 st.markdown(
     """

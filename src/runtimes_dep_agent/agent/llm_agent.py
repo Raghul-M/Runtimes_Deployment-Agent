@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 import logging
+import json
+import os
+from pathlib import Path
 
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -43,6 +46,8 @@ class LLMAgent:
         if bootstrap_config:
             config = load_llm_model_config(bootstrap_config)
             self.precomputed_requirements = get_model_requirements(config)
+            # Save precomputed requirements to info/models_info.json
+            self._save_precomputed_requirements()
 
         self.specialists: List[SpecialistSpec] = self._initialise_specialists()
         self._supervisor = self._create_supervisor()
@@ -167,6 +172,28 @@ class LLMAgent:
         )
 
 
+
+    def _save_precomputed_requirements(self):
+        """Save precomputed requirements to info/models_info.json."""
+        if not self.precomputed_requirements:
+            return
+        
+        # Get project root directory (go up from src/runtimes_dep_agent/agent/llm_agent.py)
+        # Path: src/runtimes_dep_agent/agent/llm_agent.py
+        # Go up 4 levels to reach project root
+        current_file = Path(__file__)
+        project_root = current_file.parent.parent.parent.parent
+        info_dir = project_root / "info"
+        info_dir.mkdir(parents=True, exist_ok=True)
+        
+        models_info_path = info_dir / "models_info.json"
+        
+        try:
+            with open(models_info_path, 'w') as f:
+                json.dump(self.precomputed_requirements, f, indent=2)
+            logger.info(f"Precomputed requirements saved to {models_info_path}")
+        except Exception as e:
+            logger.error(f"Failed to save precomputed requirements to {models_info_path}: {e}")
 
     @staticmethod
     def _extract_final_text(result: Dict[str, Any]) -> str:
