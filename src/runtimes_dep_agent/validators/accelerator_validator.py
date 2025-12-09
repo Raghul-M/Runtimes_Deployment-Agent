@@ -67,7 +67,7 @@ def check_gpu_availability() -> tuple[bool, str]:
 def get_gpu_info():
     """
     Get detailed GPU information based on the GPU provider and save to gpu_info.txt file.
-    The file is saved in the gpu_info folder in the project root directory (overwrites existing file).
+    The file is saved in the info folder in the project root directory (overwrites existing file).
     
     Returns:
         str: Absolute path to the created gpu_info.txt file
@@ -79,10 +79,10 @@ def get_gpu_info():
             break
         current_dir = os.path.dirname(current_dir)
     
-    # Reference gpu_info folder in project root
-    gpu_info_dir = os.path.join(current_dir, "gpu_info")
-    os.makedirs(gpu_info_dir, exist_ok=True)
-    file_path = os.path.join(gpu_info_dir, "gpu_info.txt")
+    # Reference info folder in project root
+    info_dir = os.path.join(current_dir, "info")
+    os.makedirs(info_dir, exist_ok=True)
+    file_path = os.path.join(info_dir, "gpu_info.txt")
     
     try:
         # Get GPU availability status

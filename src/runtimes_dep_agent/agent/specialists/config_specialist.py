@@ -12,6 +12,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
 import yaml
 from ...config.model_config import calculate_gpu_requirements
+from ...utils.path_utils import detect_repo_root
 
 from . import SpecialistSpec
 
@@ -20,6 +21,7 @@ def build_config_specialist(
     llm: BaseChatModel,
     extract_text: Callable[[dict], str],
     precomputed_requirements: dict | None = None,
+    bootstrap_config_path: str | None = None,
 ) -> SpecialistSpec:
     """Return the configuration specialist agent and the supervisor-facing tool."""
 
@@ -68,18 +70,16 @@ def build_config_specialist(
         without mutating the base file.
         - For each object, only updates the matching `model-car` entry.
         """
-        base_path_primary = Path("config-yaml/sample_modelcar_config.base.yaml")
-        base_path_fallback = Path("config-yaml/sample_modelcar_config.yaml")
-        output_path = Path("config-yaml/sample_modelcar_config.generated.yaml")
-
-        if base_path_primary.exists():
-            modelcar_path = base_path_primary
-        elif base_path_fallback.exists():
-            modelcar_path = base_path_fallback
+        repo_root = detect_repo_root()
+        output_path = Path(repo_root, "config-yaml", "sample_modelcar_config.generated.yaml")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if bootstrap_config_path is not None:
+            modelcar_path = Path(bootstrap_config_path)
         else:
+            modelcar_path = Path(repo_root, "config-yaml", "sample_modelcar_config.base.yaml")
+        if not modelcar_path.exists():
             return (
-                "Error: No base model-car configuration file found. "
-                f"Expected either {base_path_primary} or {base_path_fallback}."
+                f"Error: model-car config not found."
             )
 
         try:

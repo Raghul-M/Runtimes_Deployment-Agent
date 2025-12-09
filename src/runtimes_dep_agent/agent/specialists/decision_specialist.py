@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
+import os
 import re
 from pathlib import Path
 from typing import Callable
@@ -13,9 +15,16 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
 
 from . import SpecialistSpec
+from ...utils.path_utils import detect_repo_root
+
+logger = logging.getLogger(__name__)
 
 
-GPU_INFO_DEFAULT = Path("gpu_info") / "gpu_info.txt"
+CURRENT_FILE = Path(__file__).resolve()
+REPO_ROOT = detect_repo_root([CURRENT_FILE])
+INFO_DIR = REPO_ROOT / "info"
+GPU_INFO_DEFAULT = INFO_DIR / "gpu_info.txt"
+DEPLOYMENT_INFO_DEFAULT = INFO_DIR / "deployment_info.txt"
 
 
 def _parse_gpu_summary(text: str) -> tuple[int, float | None]:
@@ -132,7 +141,18 @@ def build_decision_specialist(
            - trust_remote_code
            - dtype / quantization alignment
         3. Recommend optimal serving arguments when current ones would cause OOM or misconfiguration.
-        4. If arguments are missing, infer the safest/optimal defaults using best vLLM practice.
+        4. If serving arguments are missing for a model (i.e., the model-car entry has no `serving_arguments`):
+        - You MUST treat that as "arguments missing" (not as "do nothing").
+        - Infer the safest / optimal defaults using best vLLM practice, using the following as a baseline:
+            --uvicorn-log-level=info
+            --trust-remote-code
+            --tensor-parallel-size=1
+            --max-model-len=2048
+            Treat these as a guideline, not a hard rule: you may raise or lower max-model-len or adjust
+            tensor-parallel-size if VRAM / hardware constraints require it.
+        - In this case, you SHOULD still emit an OPTIMIZED_SERVING_ARGUMENTS_JSON block for the model so
+            that the Configuration Specialist can write a concrete `serving_arguments` section into the YAML.
+
 
         You MUST reason about the arguments, not just VRAM.
 
@@ -268,7 +288,19 @@ def build_decision_specialist(
     def analyze_deployment_decision(request: str) -> str:
         """Delegate deployment fit decisions to the decision specialist."""
         result = agent.invoke({"messages": [{"role": "user", "content": request}]})
-        return extract_text(result)
+        output_text = extract_text(result)
+        
+        # Save deployment decision output to info/deployment_info.txt
+        deployment_info_path = INFO_DIR / "deployment_info.txt"
+        try:
+            INFO_DIR.mkdir(parents=True, exist_ok=True)
+            with open(deployment_info_path, 'w', encoding='utf-8') as f:
+                f.write(output_text)
+        except Exception as e:
+            # Log error but don't fail the tool
+            logger.error(f"Failed to save deployment info to {deployment_info_path}: {e}")
+        
+        return output_text
 
     analyze_deployment_decision.name = "analyze_deployment_decision"
 

@@ -14,8 +14,8 @@ Supervisor-driven orchestration for analysing model-car configurations and valid
 - **CLI-first workflow** – install the package and run `agent configuration --config …` to query any model-car file.
 - **LangChain supervisor** – the `LLMAgent` composes a specialist registry (configuration + accelerator + deployment decision) and exposes a single `run_supervisor` entry point.
 - **Configuration specialist** – parses YAML, surfaces serving arguments, GPU counts, parameter/quantization hints from model names, and estimates per-model VRAM.
-- **Accelerator specialist** – checks OpenShift authentication, enumerates GPUs, writes a detailed `gpu_info/gpu_info.txt` report (provider, instance type, per-GPU VRAM), and returns machine-readable metadata (GPU availability, provider, and a recommended `vllm_runtime_image` pulled from OpenShift templates) so downstream steps use the exact runtime container the cluster expects.
-- **Decision specialist** – reads the cached requirements plus `gpu_info/gpu_info.txt`, compares each model’s VRAM requirement to the per-GPU memory, and issues a GO/NO-GO verdict.
+- **Accelerator specialist** – checks OpenShift authentication, enumerates GPUs, writes a detailed `info/gpu_info.txt` report (provider, instance type, per-GPU VRAM), and returns machine-readable metadata (GPU availability, provider, and a recommended `vllm_runtime_image` pulled from OpenShift templates) so downstream steps use the exact runtime container the cluster expects.
+- **Decision specialist** – reads the cached requirements plus `info/gpu_info.txt`, compares each model's VRAM requirement to the per-GPU memory, and issues a GO/NO-GO verdict.
 - **Quantization-aware decisioning** – the Decision Specialist now enforces a hardware/quantization compatibility matrix (AWQ, GPTQ, FP8, W4A16/W8A8, GGUF, bitsandbytes, etc.) against the detected GPU generation, flagging unsupported kernels and recommending safer variants before issuing a verdict.
 - **Serving-argument optimizer** – when the Decision Specialist emits `OPTIMIZED_SERVING_ARGUMENTS_JSON`, the Configuration Specialist applies it to `config-yaml/sample_modelcar_config.base.yaml` and writes the merged result to `config-yaml/sample_modelcar_config.generated.yaml` so QA/testing reuse the tuned flags without mutating the base template.
 - **Container metadata enrichment** – shells out to `skopeo inspect` to capture aggregate image size (GB) and supported CPU architecture per model; reports image size separately from VRAM.
@@ -104,7 +104,7 @@ Produces four sections:
   - [x] Load cached requirements
   - [x] Check cluster authentication
   - [x] Query GPU status
-  - [x] Fetch detailed GPU info (written to `gpu_info/gpu_info.txt`)
+  - [x] Fetch detailed GPU info (written to `info/gpu_info.txt`)
   - [x] Validate accelerator compatibility (reports provider, status, and CUDA/ROCm notes)
   - Includes a validation table summarising authentication, GPU availability, and whether the detected GPU meets the model’s VRAM requirement.
   - Surfaces machine-readable metadata (`gpu_available`, `gpu_provider`, `vllm_runtime_image`) that the supervisor later feeds into QA so validation uses the same runtime image OpenShift templates recommend.

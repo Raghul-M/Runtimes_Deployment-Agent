@@ -37,7 +37,7 @@ def _skopeo_inspect(image_name: str) -> dict | None:
     image_ref = f"docker://{image_ref}"
     try:
         result = subprocess.run(
-            ["skopeo", "inspect", image_ref],
+            ["skopeo", "inspect", "--override-os", "linux", "--override-arch", "amd64", image_ref],
             capture_output=True,
             text=True,
             check=True,
