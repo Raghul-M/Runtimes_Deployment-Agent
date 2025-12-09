@@ -88,18 +88,18 @@ def build_config_specialist(
         # 1. Resolve paths
         # ------------------------------------------------------------------ #
         repo_root = detect_repo_root()
-        output_path = repo_root / "config-yaml" / "sample_modelcar_config.generated.yaml"
+        output_path = Path(repo_root, "config-yaml", "sample_modelcar_config.generated.yaml")
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         if bootstrap_config_path is not None:
             modelcar_path = Path(bootstrap_config_path)
         else:
-            modelcar_path = repo_root / "config-yaml" / "sample_modelcar_config.base.yaml"
+            modelcar_path = Path(repo_root, "config-yaml", "sample_modelcar_config.base.yaml")
 
         if not modelcar_path.exists():
             return "Error: model-car config not found."
 
-        decision_matrix_path = repo_root / "info" / "decision_matrix.json"
+        decision_matrix_path = Path(repo_root, "info", "decision_matrix.json")
 
         # ------------------------------------------------------------------ #
         # 2. Load decision matrix (deployable vs non-deployable)
