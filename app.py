@@ -150,6 +150,46 @@ def load_model_info_from_json():
     
     return {"num_models": num_models, "models": models}
 
+
+def load_deployment_matrix():
+    """Load deployment matrix entries from info/deployment_matrix.json."""
+    repo_root = detect_repo_root([Path(__file__).resolve()])
+    matrix_path = repo_root / "info" / "deployment_matrix.json"
+
+    if (
+        st.session_state.agent_start_time is None
+        or not matrix_path.exists()
+        or matrix_path.stat().st_size == 0
+    ):
+        return []
+
+    try:
+        file_mtime = matrix_path.stat().st_mtime
+        if file_mtime < st.session_state.agent_start_time:
+            return []
+
+        data = json.loads(matrix_path.read_text())
+        if isinstance(data, dict):
+            data = [data]
+        if not isinstance(data, list):
+            return []
+
+        normalized = []
+        for entry in data:
+            if not isinstance(entry, dict):
+                continue
+            normalized.append(
+                {
+                    "model_name": entry.get("model_name", "Unknown"),
+                    "deployable": bool(entry.get("deployable", False)),
+                    "reason": entry.get("reason", "No reason provided"),
+                }
+            )
+        return normalized
+    except Exception as exc:
+        st.error(f"Error loading deployment matrix: {exc}")
+        return []
+
 # Function to parse GPU info from gpu_info.txt
 def parse_gpu_info():
     """Parse GPU information from info/gpu_info.txt file and return per-node details."""
@@ -364,7 +404,7 @@ with st.sidebar:
     if st.button("Reset", width='stretch'):
         # Clear info folder files
         info_dir = os.path.join(os.path.dirname(__file__), "info")
-        files_to_clear = ["models_info.json", "gpu_info.txt", "deployment_info.txt"]
+        files_to_clear = ["models_info.json", "gpu_info.txt", "deployment_info.txt", "deployment_matrix.json"]
         for filename in files_to_clear:
             file_path = os.path.join(info_dir, filename)
             if os.path.exists(file_path):
@@ -678,6 +718,35 @@ else:
         else:
             st.info("Deployment Specialist is processing. Please wait...")
         
+        st.markdown("---")
+
+    deployment_matrix_entries = load_deployment_matrix()
+    if deployment_matrix_entries:
+        st.subheader("Deployment Matrix")
+        deployable = [entry for entry in deployment_matrix_entries if entry["deployable"]]
+        blocked = [entry for entry in deployment_matrix_entries if not entry["deployable"]]
+
+        col_deployable, col_blocked = st.columns(2)
+        with col_deployable:
+            st.markdown("**Deployable Models**")
+            if deployable:
+                for entry in deployable:
+                    st.markdown(
+                        f"- ✅ `{entry['model_name']}` — {entry['reason']}"
+                    )
+            else:
+                st.markdown("_None listed._")
+
+        with col_blocked:
+            st.markdown("**Non-deployable Models**")
+            if blocked:
+                for entry in blocked:
+                    st.markdown(
+                        f"- ⚠️ `{entry['model_name']}` — {entry['reason']}"
+                    )
+            else:
+                st.markdown("_None listed._")
+
         st.markdown("---")
     
     if st.session_state.workflow_step >= 4:
