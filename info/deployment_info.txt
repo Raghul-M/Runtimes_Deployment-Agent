@@ -1,23 +1,89 @@
-Deployment Decision: **GO**
+Based on the information from the cluster and model metadata, here is the deployment decision report.
 
-### Reasoning:
+### Overall Assessment
 
-1.  **VRAM Fit**: The model requires 18 GB of VRAM, and the single available GPU provides 44.99 GB. The available VRAM is sufficient for the model's needs.
-2.  **Serving Arguments**: The model configuration is missing the required `serving_arguments`. A safe default configuration is recommended for single-GPU serving, including setting `tensor-parallel-size` to 1 and a default `max-model-len` of 2048.
-3.  **Quantization**: No quantization method is specified for this model, so there are no hardware compatibility issues to consider.
+The cluster has a single GPU with 45 GB of VRAM available. This is insufficient for the total required VRAM of 190 GB, primarily due to the large `Llama-3-3-70B-Instruct` model. However, the smaller models in the configuration are deployable.
 
-The deployment is approved, but the serving configuration for the model must be updated as specified below.
+### Model-by-Model Breakdown
+
+---
+
+#### 1. Llama-3-3-70B-Instruct
+*   **Decision**: `Not Deployable`
+*   **Reasoning**:
+    *   **VRAM Mismatch**: The model requires **154 GB** of VRAM, but the cluster only has a single GPU with **45 GB** available.
+    *   **Hardware Mismatch**: To serve this model, a `tensor-parallel-size` of at least 4 would be required, but only 1 GPU is available. The deployment is not feasible with the current hardware.
+
+---
+
+#### 2. Llama-3.1-8B-Instruct
+*   **Decision**: `Deployable`
+*   **Reasoning**:
+    *   **VRAM Fit**: The model requires **18 GB** of VRAM, which fits comfortably on the **45 GB** GPU.
+    *   **Missing Arguments**: The model configuration is missing the `serving_arguments` block. Safe defaults are required for deployment.
+*   **Recommended Serving Arguments**:
+    
 ```json
-{
-  "model_name": "granite-3.1-8b-instruct",
-  "serving_arguments": {
-    "args": [
-      "--uvicorn-log-level=info",
-      "--max-model-len=2048",
-      "--trust-remote-code",
-      "--tensor-parallel-size=1"
-    ],
-    "gpu_count": 1
-  }
-}
-```
+    {
+      "model_name": "Llama-3.1-8B-Instruct",
+      "serving_arguments": {
+        "args": [
+          "--uvicorn-log-level=info",
+          "--trust-remote-code",
+          "--tensor-parallel-size=1",
+          "--max-model-len=2048"
+        ],
+        "gpu_count": 1
+      }
+    }
+    ```
+
+
+---
+
+#### 3. granite-3.1-8b-instruct
+*   **Decision**: `Deployable`
+*   **Reasoning**:
+    *   **VRAM Fit**: The model requires **18 GB** of VRAM, which fits comfortably on the **45 GB** GPU.
+    *   **Missing Arguments**: The model configuration is missing the `serving_arguments` block. Safe defaults are required for deployment.
+*   **Recommended Serving Arguments**:
+    
+```json
+    {
+      "model_name": "granite-3.1-8b-instruct",
+      "serving_arguments": {
+        "args": [
+          "--uvicorn-log-level=info",
+          "--trust-remote-code",
+          "--tensor-parallel-size=1",
+          "--max-model-len=2048"
+        ],
+        "gpu_count": 1
+      }
+    }
+    ```
+
+
+---
+
+#### 4. whisper-large-v2-W4A16-G128
+*   **Decision**: `Deployable`
+*   **Reasoning**:
+    *   **VRAM Fit**: While VRAM requirements could not be automatically inferred, the model is a 4-bit quantized model with a disk size of only 1.05 GB. Its VRAM footprint will be very small and will easily fit on the **45 GB** GPU.
+    *   **Missing Arguments**: The model configuration is missing the `serving_arguments` block. Safe defaults are required for deployment.
+*   **Recommended Serving Arguments**:
+    
+```json
+    {
+      "model_name": "whisper-large-v2-W4A16-G128",
+      "serving_arguments": {
+        "args": [
+          "--uvicorn-log-level=info",
+          "--trust-remote-code",
+          "--tensor-parallel-size=1",
+          "--max-model-len=2048"
+        ],
+        "gpu_count": 1
+      }
+    }
+    ```

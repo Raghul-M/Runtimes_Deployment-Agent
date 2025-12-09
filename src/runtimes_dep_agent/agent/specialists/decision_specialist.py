@@ -121,6 +121,63 @@ def build_decision_specialist(
             f"{per_model_report}\n"
             f"- Comparison: {comparison}"
         )
+    
+    @tool
+    def deployability_decision(
+        deployment_matrix_json: str
+    ) -> str:
+        """
+        Partition the model-car YAML into deployable and non-deployable YAMLs.
+
+        Input: deployment_matrix_json should be a JSON array (or single object)
+        with items of the form:
+          {
+            "model_name": "...",
+            "deployable": true/false,
+            "reason": "..."
+          }
+      """
+        json_path = Path(INFO_DIR, "deployment_matrix.json")
+
+        try:
+            matrix_obj = json.loads(deployment_matrix_json)
+        except json.JSONDecodeError:
+            return "Error: Provided deployment matrix is not valid JSON."
+
+        if isinstance(matrix_obj, dict):
+            matrix_list = [matrix_obj]
+        elif isinstance(matrix_obj, list):
+            matrix_list = matrix_obj
+        else:
+            return "Error: Deployment matrix must be a JSON object or array."
+
+        deployable_models = []
+        non_deployable_models = []
+
+        for entry in matrix_list:
+            model_name = entry.get("model_name", "unknown")
+            deployable = entry.get("deployable", False)
+            reason = entry.get("reason", "No reason provided.")
+            if deployable:
+                deployable_models.append(f"- {model_name}: Deployable")
+            else:
+                non_deployable_models.append(f"- {model_name}: Not Deployable ({reason})")
+
+        deployable_report = "\n".join(deployable_models) if deployable_models else "- None"
+        non_deployable_report = "\n".join(non_deployable_models) if non_deployable_models else "- None"
+        
+        with open(json_path, "w") as f:
+            f.write(deployment_matrix_json)
+
+        return (
+            "Deployability Decision Report:\n"
+            "Deployable Models:\n"
+            f"{deployable_report}\n\n"
+            "Non-Deployable Models:\n"
+            f"{non_deployable_report}"
+        )
+        
+
 
     prompt = """
         You are a deployment decision specialist.
@@ -152,6 +209,9 @@ def build_decision_specialist(
             tensor-parallel-size if VRAM / hardware constraints require it.
         - In this case, you SHOULD still emit an OPTIMIZED_SERVING_ARGUMENTS_JSON block for the model so
             that the Configuration Specialist can write a concrete `serving_arguments` section into the YAML.
+        5. Produce a deployability decision report, listing each model as:
+           - Deployable
+           - Not Deployable (with reason)
 
 
         You MUST reason about the arguments, not just VRAM.
@@ -280,7 +340,7 @@ def build_decision_specialist(
 
     agent = create_agent(
         llm,
-        tools=[assess_deployment_fit, describe_preloaded_requirements],
+        tools=[assess_deployment_fit, describe_preloaded_requirements, deployability_decision],
         system_prompt=prompt,
     )
 

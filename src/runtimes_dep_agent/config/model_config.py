@@ -212,3 +212,15 @@ def calculate_gpu_requirements(
             continue
         total_gb += P * (Q / 8.0) * (1.0 + overhead_factor)
     return math.ceil(total_gb)
+
+def extract_deployment_matrix(matrix_path: str) -> Dict:
+    """Extract deployment matrix from JSON file.
+
+    Args:
+        matrix_path (str): Path to the deployment matrix JSON file.
+    Returns:
+        Dict: Deployment matrix as a dictionary.
+    """
+    with open(matrix_path, 'r') as file:
+        matrix = json.load(file)
+    return matrix
