@@ -9,6 +9,9 @@ from datetime import datetime
 import plotly.graph_objects as go
 import pandas as pd
 import json
+from pathlib import Path
+
+from runtimes_dep_agent.utils.path_utils import detect_repo_root
 
 # Page configuration
 st.set_page_config(
@@ -74,11 +77,12 @@ def get_value(path: str, default):
 
 # Function to load model information from info/models_info.json
 def load_model_info_from_json():
-    """Load model information from info/models_info.json file."""
-    models_info_path = os.path.join(os.path.dirname(__file__), "info", "models_info.json")
+    """Load model information from the repo's info/models_info.json file."""
+    repo_root = detect_repo_root([Path(__file__).resolve()])
+    models_info_path = Path(repo_root, "info", "models_info.json")
     models = []
     
-    if not os.path.exists(models_info_path):
+    if not models_info_path.exists():
         return {"num_models": 0, "models": []}
     
     # Don't show data if agent hasn't started yet
@@ -87,19 +91,19 @@ def load_model_info_from_json():
     
     # Check if file has been updated since agent started (only show if new data)
     try:
-        file_mtime = os.path.getmtime(models_info_path)
+        file_mtime = models_info_path.stat().st_mtime
         # Only show if file was modified after agent started
         if file_mtime < st.session_state.agent_start_time:
             return {"num_models": 0, "models": []}
         
         # Check if file is empty (from reset)
-        if os.path.getsize(models_info_path) == 0:
+        if models_info_path.stat().st_size == 0:
             return {"num_models": 0, "models": []}
     except Exception:
         pass
     
     try:
-        with open(models_info_path, 'r') as f:
+        with models_info_path.open('r') as f:
             content = f.read().strip()
             if not content:  # Empty file
                 return {"num_models": 0, "models": []}

@@ -17,6 +17,7 @@ from .specialists.qa_specialist import build_qa_specialist
 from .specialists.accelerator_specialist import build_accelerator_specialist
 from .specialists.decision_specialist import build_decision_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
+from ..utils.path_utils import detect_repo_root
 
 
 
@@ -43,10 +44,11 @@ class LLMAgent:
         )
 
         self.precomputed_requirements = None
+        self.bootstrap_config_path: Path | None = None
         if bootstrap_config:
-            config = load_llm_model_config(bootstrap_config)
+            self.bootstrap_config_path = Path(bootstrap_config).resolve()
+            config = load_llm_model_config(str(self.bootstrap_config_path))
             self.precomputed_requirements = get_model_requirements(config)
-            self.bootstrap_config_path = bootstrap_config
             # Save precomputed requirements to info/models_info.json
             self._save_precomputed_requirements()
 
@@ -184,12 +186,12 @@ class LLMAgent:
         if not self.precomputed_requirements:
             return
         
-        # Get project root directory (go up from src/runtimes_dep_agent/agent/llm_agent.py)
-        # Path: src/runtimes_dep_agent/agent/llm_agent.py
-        # Go up 4 levels to reach project root
-        current_file = Path(__file__)
-        project_root = current_file.parent.parent.parent.parent
-        info_dir = project_root / "info"
+        start_paths: list[Path] = [Path(__file__).resolve()]
+        if self.bootstrap_config_path:
+            start_paths.append(self.bootstrap_config_path)
+        repo_root = detect_repo_root(start_paths)
+
+        info_dir = repo_root / "info"
         info_dir.mkdir(parents=True, exist_ok=True)
         
         models_info_path = info_dir / "models_info.json"

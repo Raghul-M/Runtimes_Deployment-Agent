@@ -2,13 +2,17 @@ model-car:
 - name: granite-3.1-8b-instruct
   image: oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5
   model_output_type: text
+- name: whisper-large-v2-W4A16-G128
+  image: oci://registry.redhat.io/rhelai1/modelcar-whisper-large-v2-w4a16-g128:1.5
+  model_output_type: audio
   serving_arguments:
     args:
     - --uvicorn-log-level=info
     - --trust-remote-code
     - --tensor-parallel-size=1
     - --max-model-len=2048
+    - --quantization=awq
     gpu_count: 1
-- name: whisper-large-v2-W4A16-G128
-  image: oci://registry.redhat.io/rhelai1/modelcar-whisper-large-v2-w4a16-g128:1.5
-  model_output_type: audio
+- name: Llama-3.1-8B-Instruct
+  image: oci://registry.redhat.io/rhelai1/modelcar-llama-3-1-8b-instruct:1.5
+  model_output_type: text
