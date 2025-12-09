@@ -1,23 +1,13 @@
 
 [
   {
-    "model_name": "Llama-3-3-70B-Instruct",
+    "model_name": "gpt-oss-120b",
     "deployable": false,
-    "reason": "Insufficient VRAM and GPU count. Model requires 154 GB of VRAM and a tensor-parallel-size of at least 4, but only 1 GPU with 45 GB of VRAM is available."
-  },
-  {
-    "model_name": "Llama-3.1-8B-Instruct",
-    "deployable": true,
-    "reason": "Model requires 18 GB of VRAM and fits on the available 45 GB GPU. Recommending safe default serving arguments."
+    "reason": "Insufficient GPU capacity. The model requires 264 GB of VRAM (~6 GPUs), but the cluster only provides 135 GB (3 GPUs)."
   },
   {
     "model_name": "granite-3.1-8b-instruct",
     "deployable": true,
-    "reason": "Model requires 18 GB of VRAM and fits on the available 45 GB GPU. Recommending safe default serving arguments."
-  },
-  {
-    "model_name": "whisper-large-v2-W4A16-G128",
-    "deployable": true,
-    "reason": "Model VRAM requirements are low and will fit on the available 45 GB GPU. Recommending safe default serving arguments."
+    "reason": "Model fits on a single GPU. However, the configuration is missing serving_arguments, which must be added for a successful deployment. See the recommended OPTIMIZED_SERVING_ARGUMENTS_JSON."
   }
 ]

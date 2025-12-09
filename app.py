@@ -190,6 +190,119 @@ def load_deployment_matrix():
         st.error(f"Error loading deployment matrix: {exc}")
         return []
 
+# Function to extract QA summary from agent output
+def extract_qa_summary(agent_output: str) -> tuple[str, str]:
+    """
+    Extract QA validation summary from the full agent output.
+    Returns: (status, message) tuple
+    """
+    if not agent_output:
+        return "pending", "QA validation has not been run yet."
+    
+    # Look for QA Validation section
+    qa_patterns = [
+        r"###\s*QA\s*Validation\s*\n(.*?)(?=\n###|\Z)",
+        r"##\s*QA\s*Validation\s*\n(.*?)(?=\n##|\Z)",
+        r"QA\s*Validation\s*\n(.*?)(?=\n###|\n##|\Z)",
+    ]
+    
+    qa_summary = None
+    for pattern in qa_patterns:
+        match = re.search(pattern, agent_output, re.IGNORECASE | re.DOTALL)
+        if match:
+            qa_summary = match.group(1).strip()
+            break
+    
+    if not qa_summary:
+        # Fallback: look for any mention of QA
+        if "QA" in agent_output.upper() or "qa specialist" in agent_output.lower():
+            # Try to find the last paragraph or sentence mentioning QA
+            lines = agent_output.split('\n')
+            qa_lines = []
+            found_qa = False
+            for line in lines:
+                if 'qa' in line.lower() and ('specialist' in line.lower() or 'validation' in line.lower()):
+                    found_qa = True
+                if found_qa:
+                    qa_lines.append(line)
+                    # Stop at next section or after a few lines
+                    if line.strip().startswith('###') and len(qa_lines) > 1:
+                        qa_lines.pop()  # Remove the section header
+                        break
+                    if len(qa_lines) > 10:  # Limit to reasonable length
+                        break
+            if qa_lines:
+                qa_summary = '\n'.join(qa_lines).strip()
+    
+    if not qa_summary:
+        return "pending", "QA validation information not found in agent output."
+    
+    # Clean up the summary - remove excessive whitespace and logs
+    # Remove lines that look like logs (contain timestamps, [QA], etc.)
+    cleaned_lines = []
+    for line in qa_summary.split('\n'):
+        line = line.strip()
+        # Skip log-like lines (timestamps, [QA] prefixes, command outputs, etc.)
+        if (re.match(r'^\[.*\]', line) or 
+            re.match(r'^\d{4}-\d{2}-\d{2}', line) or
+            re.match(r'^\[QA\]', line) or
+            line.startswith('podman') or
+            line.startswith('Running ODH') or
+            'INFO' in line or 'ERROR' in line or 'WARNING' in line or
+            'test_modelvalidation.py' in line or
+            'opendatahub-tests' in line):
+            continue
+        # Skip empty lines at start
+        if not cleaned_lines and not line:
+            continue
+        # Stop at code blocks or JSON examples
+        if line.startswith('```') or line.startswith('{') and 'json' in line.lower():
+            break
+        cleaned_lines.append(line)
+    
+    qa_summary = '\n'.join(cleaned_lines).strip()
+    
+    # Extract just the first paragraph or sentence if it's too long
+    # Look for natural sentence boundaries
+    if len(qa_summary) > 300:
+        # Try to find the end of the first complete thought
+        sentences = re.split(r'[.!?]\s+', qa_summary)
+        if sentences:
+            # Take first 2-3 sentences if they're reasonable length
+            summary_parts = []
+            total_len = 0
+            for sent in sentences:
+                if total_len + len(sent) > 300 and summary_parts:
+                    break
+                summary_parts.append(sent)
+                total_len += len(sent) + 2
+            if summary_parts:
+                qa_summary = '. '.join(summary_parts)
+                if not qa_summary.endswith(('.', '!', '?')):
+                    qa_summary += '.'
+    
+    # Determine status from summary
+    qa_summary_lower = qa_summary.lower()
+    if any(word in qa_summary_lower for word in ['not run', 'skipped', 'no-go', 'no go']):
+        status = "skipped"
+    elif any(word in qa_summary_lower for word in ['pass', 'success', 'passed', 'completed successfully']):
+        status = "passed"
+    elif any(word in qa_summary_lower for word in ['fail', 'error', 'failed']):
+        status = "failed"
+    else:
+        status = "completed"
+    
+    # Limit summary length to avoid showing full logs
+    if len(qa_summary) > 500:
+        # Try to find a good cutoff point (end of sentence)
+        cutoff = qa_summary[:500].rfind('.')
+        if cutoff > 200:
+            qa_summary = qa_summary[:cutoff + 1]
+        else:
+            qa_summary = qa_summary[:500] + "..."
+    
+    return status, qa_summary
+
 # Function to parse GPU info from gpu_info.txt
 def parse_gpu_info():
     """Parse GPU information from info/gpu_info.txt file and return per-node details."""
@@ -576,6 +689,10 @@ else:
         
         # Only display if we have models (file was updated)
         if num_models > 0:
+            # Track configuration agent completion time
+            if st.session_state.agent_timestamps["configuration"] is None:
+                st.session_state.agent_timestamps["configuration"] = time.time()
+            
             # Display number of models at the top
             st.markdown(f"""
             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8f9fa;">
@@ -615,6 +732,10 @@ else:
         
         # Only display if we have GPU nodes (file was updated)
         if gpu_info["total_nodes"] > 0:
+            # Track accelerator agent completion time
+            if st.session_state.agent_timestamps["accelerator"] is None:
+                st.session_state.agent_timestamps["accelerator"] = time.time()
+            
             # Display total number of GPU nodes
             total_nodes = gpu_info["total_nodes"]
             total_gpus = gpu_info["total_gpus"]
@@ -673,6 +794,10 @@ else:
                 pass
         
         if file_exists_and_updated:
+            # Track deployment agent completion time
+            if st.session_state.agent_timestamps["deployment"] is None:
+                st.session_state.agent_timestamps["deployment"] = time.time()
+            
             try:
                 with open(deployment_info_path, 'r', encoding='utf-8') as f:
                     deployment_info_text = f.read().strip()
@@ -701,13 +826,6 @@ else:
                 ]):
                     verdict = "GO"
                     verdict_color = "#28a745"  # Green for GO
-                
-                # Display Deployment Status in a card before dropdown
-                st.markdown(f"""
-                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8f9fa;">
-                <p style="font-size: 1.2em; font-weight: bold; color: {verdict_color}; margin-bottom: 8px;">Deployment Status: {verdict}</p>
-                </div>
-                """, unsafe_allow_html=True)
                 
                 # Display in expandable dropdown
                 with st.expander(f"Deployment Decision Details", expanded=False):
@@ -751,13 +869,30 @@ else:
     
     if st.session_state.workflow_step >= 4:
         st.subheader("QA Specialist Results")
-        qa_status = get_value("qa.status", "passed")
-        qa_message = get_value("qa.message", "The test confirmed that the model serving runtime was deployed correctly, the model was loaded, and it responded successfully to inference requests. No immediate action is required.")
+        
+        # Extract QA summary from full agent output
+        agent_output = st.session_state.agent_output_text or ""
+        qa_status, qa_message = extract_qa_summary(agent_output)
+        
+        # If no QA info found and agent output exists, show a message
+        if qa_status == "pending" and agent_output:
+            qa_message = "QA validation information is being processed. Please check the full agent output for details."
+        
+        # Determine color based on status
+        if qa_status == "passed" or qa_status == "completed":
+            status_color = "#28a745"  # Green
+        elif qa_status == "failed":
+            status_color = "#dc3545"  # Red
+        elif qa_status == "skipped":
+            status_color = "#ffc107"  # Yellow
+        else:
+            status_color = "#6c757d"  # Gray for pending/unknown
         
         st.markdown(f"""
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; background-color: #f8f9fa;">
         <h3>QA Validation</h3>
-        <p>The <strong>QA Specialist</strong> reports that the Opendatahub model validation test suite has <strong>{qa_status}</strong>. {qa_message}</p>
+        <p><strong>Status:</strong> <span style="color: {status_color}; font-weight: bold;">{qa_status.upper()}</span></p>
+        <p>{qa_message}</p>
         </div>
         """, unsafe_allow_html=True)
         st.markdown("---")
@@ -788,8 +923,10 @@ else:
     if st.session_state.workflow_step >= 5:
         st.subheader("Summary")
         elapsed_time = time.time() - st.session_state.start_time
-        # models_executed_summary = get_value("reporting.models_executed", 2)
-        models_executed_summary = len(load_model_info_from_json()["models"]) if load_model_info_from_json()["models"] else 0
+        # Count only deployable models from deployment_matrix.json
+        deployment_matrix_entries = load_deployment_matrix()
+        deployable_models = [entry for entry in deployment_matrix_entries if entry.get("deployable", False)]
+        models_executed_summary = len(deployable_models) if deployable_models else 0
         
         col1, col2 = st.columns(2)
         with col1:
@@ -900,7 +1037,7 @@ else:
                 title="Agent Execution Timeline",
                 xaxis_title="Agent",
                 yaxis_title="Time (seconds)",
-                barmode='overlay',
+                barmode='group',
                 height=400,
                 showlegend=False,
                 hovermode='closest'
@@ -988,7 +1125,7 @@ else:
                             cmd,
                             capture_output=True,
                             text=True,
-                            timeout=300,  # 5 minute timeout
+                            timeout=2100,  # 35 minute timeout (QA tests can take up to 30 minutes)
                             env=env,
                             cwd=project_dir  # Run from project directory
                         )
@@ -1008,8 +1145,8 @@ else:
                         # Advance to next step
                         st.session_state.workflow_step = 2
                     except subprocess.TimeoutExpired:
-                        st.session_state.agent_command_output = "Error: Command timed out after 5 minutes"
-                        st.session_state.agent_output_text = "Error: Command timed out after 5 minutes"
+                        st.session_state.agent_command_output = "Error: Command timed out after 35 minutes"
+                        st.session_state.agent_output_text = "Error: Command timed out after 35 minutes"
                         st.session_state.workflow_step = 6
                     except Exception as e:
                         st.session_state.agent_command_output = f"Error running agent command: {str(e)}"
