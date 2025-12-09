@@ -11,7 +11,7 @@ from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import tool
 import yaml
-from ...config.model_config import calculate_gpu_requirements
+from ...config.model_config import calculate_gpu_requirements, extract_deployment_matrix
 from ...utils.path_utils import detect_repo_root
 
 from . import SpecialistSpec
@@ -46,42 +46,102 @@ def build_config_specialist(
     @tool
     def generate_optimal_serving_arguments(optimized_args_json: str) -> str:
         """
-        Create a *new* modelcar YAML from a base version with optimized serving arguments.
+        Create a *new* model-car YAML that only includes deployable models and applies
+        optimized serving arguments for those models.
 
-        Accepts EITHER:
-        {
-            "model_name": "granite-3.1-8b-instruct",
-            "serving_arguments": { ... }
-        }
-        OR:
-        [
-            {
-            "model_name": "...",
-            "serving_arguments": { ... }
-            },
-            ...
-        ]
+        Inputs:
+        - optimized_args_json:
+            EITHER a single object:
+                {
+                "model_name": "granite-3.1-8b-instruct",
+                "serving_arguments": { ... }
+                }
+            OR a list of such objects:
+                [
+                {
+                    "model_name": "...",
+                    "serving_arguments": { ... }
+                },
+                ...
+                ]
 
         Behavior:
-        - Uses `config-yaml/sample_modelcar_config.base.yaml` as base if it exists,
-        otherwise falls back to `config-yaml/sample_modelcar_config.yaml`.
-        - Writes the updated config to:
-            `config-yaml/sample_modelcar_config.generated.yaml`
-        without mutating the base file.
-        - For each object, only updates the matching `model-car` entry.
+        - Reads the base model-car config from:
+            - bootstrap_config_path (if provided), otherwise
+            - <repo_root>/config-yaml/sample_modelcar_config.base.yaml
+        - Reads deployability decisions from:
+            <repo_root>/info/decision_matrix.json
+            Each entry should look like:
+            {
+                "model_name": "granite-3.1-8b-instruct",
+                "deployable": true,
+                "reason": "..."
+            }
+        - Keeps ONLY models with deployable == true.
+        - Applies serving_arguments overrides from optimized_args_json
+            to those deployable models (if present).
+        - Writes the final filtered config to:
+            <repo_root>/config-yaml/sample_modelcar_config.generated.yaml
         """
+
+        # ------------------------------------------------------------------ #
+        # 1. Resolve paths
+        # ------------------------------------------------------------------ #
         repo_root = detect_repo_root()
         output_path = Path(repo_root, "config-yaml", "sample_modelcar_config.generated.yaml")
         output_path.parent.mkdir(parents=True, exist_ok=True)
+
         if bootstrap_config_path is not None:
             modelcar_path = Path(bootstrap_config_path)
         else:
             modelcar_path = Path(repo_root, "config-yaml", "sample_modelcar_config.base.yaml")
-        if not modelcar_path.exists():
-            return (
-                f"Error: model-car config not found."
-            )
 
+        if not modelcar_path.exists():
+            return "Error: model-car config not found."
+
+        decision_matrix_path = Path(repo_root, "info", "decision_matrix.json")
+
+        # ------------------------------------------------------------------ #
+        # 2. Load decision matrix (deployable vs non-deployable)
+        # ------------------------------------------------------------------ #
+        deployable_names: set[str] = set()
+        if decision_matrix_path.exists():
+            try:
+                with open(decision_matrix_path, "r", encoding="utf-8") as f:
+                    decision_matrix = json.load(f)
+                if isinstance(decision_matrix, list):
+                    for entry in decision_matrix:
+                        if (
+                            isinstance(entry, dict)
+                            and entry.get("deployable") is True
+                            and isinstance(entry.get("model_name"), str)
+                        ):
+                            deployable_names.add(entry["model_name"])
+            except Exception as e:
+                # If this fails, treat it as "no decision matrix" and keep all models.
+                return f"Error: Failed to read decision_matrix.json: {e}"
+        else:
+            return "Error: decision_matrix.json not found. Cannot determine deployable models."
+
+        # ------------------------------------------------------------------ #
+        # 3. Load base model-car YAML
+        # ------------------------------------------------------------------ #
+        with open(modelcar_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+
+        model_car_block = cfg.get("model-car", [])
+        if isinstance(model_car_block, dict):
+            model_list = [model_car_block]
+            was_dict = True
+        elif isinstance(model_car_block, list):
+            model_list = model_car_block
+            was_dict = False
+        else:
+            return "Error: 'model-car' section is not a dict or list; cannot apply overrides."
+
+        # ------------------------------------------------------------------ #
+        # 4. Parse serving-argument overrides
+        # ------------------------------------------------------------------ #
         try:
             overrides_obj = json.loads(optimized_args_json)
         except json.JSONDecodeError:
@@ -96,74 +156,76 @@ def build_config_specialist(
                 "Error: Expected a JSON object or a list of objects with "
                 "'model_name' and 'serving_arguments'."
             )
-        with open(modelcar_path, "r") as f:
-            cfg = yaml.safe_load(f) or {}
 
-        model_car_block = cfg.get("model-car", [])
-        if isinstance(model_car_block, dict):
-            model_list = [model_car_block]
-        elif isinstance(model_car_block, list):
-            model_list = model_car_block
-        else:
-            return (
-                "Error: 'model-car' section is not a dict or list; "
-                "cannot apply overrides."
-            )
+        # Build a quick lookup: model_name -> serving_arguments dict
+        overrides_by_name: dict[str, dict] = {}
+        for ov in overrides_list:
+            if not isinstance(ov, dict):
+                continue
+            name = ov.get("model_name")
+            sa = ov.get("serving_arguments") or {}
+            if isinstance(name, str) and isinstance(sa, dict) and sa:
+                overrides_by_name[name] = sa
 
+        # ------------------------------------------------------------------ #
+        # 5. Filter to deployable models and apply overrides
+        # ------------------------------------------------------------------ #
+        new_model_list: list[dict] = []
         updated_models: list[str] = []
 
-        for overrides in overrides_list:
-            if not isinstance(overrides, dict):
+        for entry in model_list:
+            if not isinstance(entry, dict):
                 continue
 
-            target_name = overrides.get("model_name")
-            sa_overrides = overrides.get("serving_arguments") or {}
-
-            if not target_name or not sa_overrides:
+            name = entry.get("name")
+            if not isinstance(name, str):
                 continue
 
-            for entry in model_list:
-                if not isinstance(entry, dict):
-                    continue
+            # Skip models that are NOT deployable
+            if name not in deployable_names:
+                continue
 
-                if entry.get("name") != target_name:
-                    continue
-
+            # Apply overrides if present
+            if name in overrides_by_name:
                 if "serving_arguments" not in entry or not isinstance(entry["serving_arguments"], dict):
                     entry["serving_arguments"] = {}
+                entry["serving_arguments"].update(overrides_by_name[name])
+                updated_models.append(name)
 
-                entry["serving_arguments"].update(sa_overrides)
-                updated_models.append(target_name)
-                break
+            new_model_list.append(entry)
 
-        if not updated_models:
+        if not new_model_list:
             return (
-                "No model-car entries were updated. Check that 'model_name' values "
-                "match the names in the model-car config."
+                "No deployable models found based on decision_matrix.json. "
+                "Generated config not written."
             )
 
-        if isinstance(model_car_block, dict):
-            cfg["model-car"] = model_list[0]
+        # Restore shape: dict vs list, following original config
+        if was_dict and len(new_model_list) == 1:
+            cfg["model-car"] = new_model_list[0]
         else:
-            cfg["model-car"] = model_list
+            cfg["model-car"] = new_model_list
 
+        # Remove any top-level serving_arguments block if present
         cfg.pop("serving_arguments", None)
 
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "w") as f:
+        # ------------------------------------------------------------------ #
+        # 6. Write generated YAML
+        # ------------------------------------------------------------------ #
+        with open(output_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(
                 cfg,
                 f,
-                sort_keys=False,  # keep order sane
+                sort_keys=False,
                 default_flow_style=False,
             )
 
-        updated_str = ", ".join(sorted(set(updated_models)))
-        
+        updated_str = ", ".join(sorted(set(updated_models))) if updated_models else "none (no overrides applied)"
         return (
-            f"Updated serving arguments for model(s): {updated_str}. "
-            f"Generated config: {output_path}"
+            f"Generated filtered config with deployable models only at: {output_path}. "
+            f"Applied serving_arguments overrides for: {updated_str}."
         )
+                                                                                            
 
             
     prompt = """

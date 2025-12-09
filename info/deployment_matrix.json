@@ -1,0 +1,23 @@
+
+[
+  {
+    "model_name": "Llama-3-3-70B-Instruct",
+    "deployable": false,
+    "reason": "Insufficient VRAM and GPU count. Model requires 154 GB of VRAM and a tensor-parallel-size of at least 4, but only 1 GPU with 45 GB of VRAM is available."
+  },
+  {
+    "model_name": "Llama-3.1-8B-Instruct",
+    "deployable": true,
+    "reason": "Model requires 18 GB of VRAM and fits on the available 45 GB GPU. Recommending safe default serving arguments."
+  },
+  {
+    "model_name": "granite-3.1-8b-instruct",
+    "deployable": true,
+    "reason": "Model requires 18 GB of VRAM and fits on the available 45 GB GPU. Recommending safe default serving arguments."
+  },
+  {
+    "model_name": "whisper-large-v2-W4A16-G128",
+    "deployable": true,
+    "reason": "Model VRAM requirements are low and will fit on the available 45 GB GPU. Recommending safe default serving arguments."
+  }
+]

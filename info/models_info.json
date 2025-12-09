@@ -28,5 +28,15 @@
     "quantization_bits": null,
     "required_vram_gb": 18,
     "supported_arch": "amd64"
+  },
+  "Llama-3-3-70B-Instruct": {
+    "model_name": "Llama-3-3-70B-Instruct",
+    "image": "oci://registry.redhat.io/rhelai1/modelcar-llama-3-3-70b-instruct:1.5",
+    "arguments": [],
+    "model_size_gb": 131.44,
+    "model_p_billion": 70.0,
+    "quantization_bits": null,
+    "required_vram_gb": 154,
+    "supported_arch": "amd64"
   }
 }
