@@ -919,7 +919,7 @@ else:
                             cmd,
                             capture_output=True,
                             text=True,
-                            timeout=300,  # 5 minute timeout
+                            timeout=2100,  # 35 minute timeout (QA tests can take up to 30 minutes)
                             env=env,
                             cwd=project_dir  # Run from project directory
                         )
@@ -939,8 +939,8 @@ else:
                         # Advance to next step
                         st.session_state.workflow_step = 2
                     except subprocess.TimeoutExpired:
-                        st.session_state.agent_command_output = "Error: Command timed out after 5 minutes"
-                        st.session_state.agent_output_text = "Error: Command timed out after 5 minutes"
+                        st.session_state.agent_command_output = "Error: Command timed out after 35 minutes"
+                        st.session_state.agent_output_text = "Error: Command timed out after 35 minutes"
                         st.session_state.workflow_step = 6
                     except Exception as e:
                         st.session_state.agent_command_output = f"Error running agent command: {str(e)}"
