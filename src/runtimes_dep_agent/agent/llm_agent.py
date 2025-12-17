@@ -98,6 +98,8 @@ class LLMAgent:
     def _create_supervisor(self):
         tools = [spec.tool for spec in self.specialists]
 
+        runtime_image = os.environ.get("VLLM_RUNTIME_IMAGE", "")
+
         prompt = (
             "You are a supervisor agent that coordinates several specialist tools:\n"
             "- Configuration Specialist: preloaded model-car requirements, YAML-derived details, VRAM estimates, and "
@@ -116,7 +118,7 @@ class LLMAgent:
             "  - Set the `request` argument to a short natural-language instruction like\n"
             "    \"Run QA and summarize the validation results.\"\n"
             "  - Set the `runtime_image` argument to the exact value of \"vllm_runtime_image\" from the\n"
-            "    accelerator JSON. Do NOT invent or guess this value.\n"
+            f"    accelerator JSON. Do NOT invent or guess this value. But use `{runtime_image}` if its not empty.\n\n"
 
             "Environment and safety rules (CRITICAL):\n"
             "- After calling the Accelerator Specialist, if its report indicates ANY of the following:\n"

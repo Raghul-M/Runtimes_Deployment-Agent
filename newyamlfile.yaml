@@ -1,0 +1,7 @@
+model-car:
+  - name: gpt-oss-120b
+    image: oci://registry.stage.redhat.io/rhelai1/gpt-oss-120b:1.5
+    model_output_type: text
+  - name: granite-3.1-8b-instruct
+    image: oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5
+    model_output_type: text

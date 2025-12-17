@@ -1,20 +1,14 @@
-Here is the deployment deployability decision report.
+### Deployability Decision Report
 
-Based on the hardware assessment, the `gpt-oss-120b` model is not deployable due to insufficient GPU resources, while the `granite-3.1-8b-instruct` model is deployable but requires a critical configuration update.
+#### **Deployable Models**
 
-### **Deployment Analysis**
+*   **granite-3.1-8b-instruct**: Deployable
+    *   **VRAM:** The model's VRAM requirement of 18 GB is well within the 192.0 GB capacity of a single GPU.
+    *   **Hardware Compatibility:** The model is not quantized, so there are no quantization-specific incompatibilities with the available AMD accelerators.
+    *   **Serving Arguments:** The model was missing a `serving_arguments` configuration. A safe default has been generated, setting `tensor-parallel-size` to 1 for single-GPU inference, which is appropriate for this model and hardware.
 
-*   **`gpt-oss-120b`**: **Not Deployable**
-    *   **VRAM vs. Capacity**: The model requires 264 GB of VRAM. The cluster has 3 GPUs, each with 45 GB, for a total of 135 GB. This is a significant shortfall, requiring approximately 6 GPUs to meet the model's needs.
-    *   **Serving Arguments**: The model configuration is missing the required `serving_arguments`, which would need to include `--tensor-parallel-size=6` to span the necessary GPUs. Due to the hardware shortfall, this is a secondary issue.
-
-*   **`granite-3.1-8b-instruct`**: **Deployable**
-    *   **VRAM vs. Capacity**: The model requires 18 GB of VRAM and will fit comfortably on a single 45 GB GPU.
-    *   **Serving Arguments**: The model configuration is missing the `serving_arguments` section entirely. This is a critical omission that would cause deployment to fail. I am recommending a set of safe, default arguments to ensure the model can be served correctly on a single GPU.
-
-### **Optimized Serving Arguments**
-
-The following arguments should be added to the model-car configuration for `granite-3.1-8b-instruct` to ensure a successful deployment.
+---
+### OPTIMIZED_SERVING_ARGUMENTS_JSON
 ```json
 {
   "model_name": "granite-3.1-8b-instruct",

@@ -31,7 +31,8 @@ def build_qa_specialist(
 
     @tool
     def run_odh_tests(
-        runtime_image: str
+        runtime_image: str,
+        gpu_provider: str
     ) -> str:
         """
         Run the ODH model validation test suite using a staged kubeconfig under /tmp.
@@ -109,7 +110,7 @@ def build_qa_specialist(
                 "tests/model_serving/model_runtime/model_validation/test_modelvalidation.py",
                 "--model_car_yaml_path=/home/odh/opendatahub-tests/modelcar.yaml",
                 f"--vllm-runtime-image={VLLM_RUNTIME_IMAGE}",
-                "--supported-accelerator-type=Nvidia",
+                f"--supported-accelerator-type={gpu_provider}",
                 "--registry-host=registry.redhat.io",
                 "--snapshot-update",
                 "--log-file=/home/odh/opendatahub-tests/results/pytest-logs.log",
@@ -201,15 +202,17 @@ def build_qa_specialist(
     )
 
     @tool
-    def analyze_qa_results(request: str, runtime_image: str) -> str:
+    def analyze_qa_results(request: str, runtime_image: str, gpu_provider: str) -> str:
         """
         Supervisor-facing entrypoint. The supervisor must pass:
             - request: what to do (e.g. "run QA and summarize results")
             - runtime_image: the vLLM runtime image to test
+            - gpu_provider: the GPU provider (e.g. "NVIDIA" or "AMD")
         """
         qa_input = (
             f"{request}\n\n"
             f"RUNTIME_IMAGE::{runtime_image}\n"
+            f"GPU_PROVIDER::{gpu_provider}\n"
             "You MUST call `run_odh_tests` using this exact runtime image."
         )
 

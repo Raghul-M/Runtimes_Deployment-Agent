@@ -1,14 +1,4 @@
 {
-  "gpt-oss-120b": {
-    "model_name": "gpt-oss-120b",
-    "image": "oci://http://registry.stage.redhat.io/rhelai1/gpt-oss-120b:1.5",
-    "arguments": [],
-    "model_size_gb": 0,
-    "model_p_billion": 120.0,
-    "quantization_bits": null,
-    "required_vram_gb": 264,
-    "supported_arch": "unknown"
-  },
   "granite-3.1-8b-instruct": {
     "model_name": "granite-3.1-8b-instruct",
     "image": "oci://registry.redhat.io/rhelai1/modelcar-granite-3-1-8b-instruct:1.5",

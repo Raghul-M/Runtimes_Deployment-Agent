@@ -298,6 +298,11 @@ def build_decision_specialist(
           compatible but still consider VRAM and serving arguments (tensor
           parallel size, max_model_len, etc.).
 
+        Exception:
+        - If no quantization info can be inferred from the model name or
+          metadata, you MUST NOT assume any incompatibility. Proceed to reason
+          about VRAM and serving arguments only.
+
         ----------------------------------------------------------------------
         OPTIMIZED_SERVING_ARGUMENTS_JSON
         ----------------------------------------------------------------------

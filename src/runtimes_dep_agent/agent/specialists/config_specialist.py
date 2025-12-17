@@ -70,7 +70,7 @@ def build_config_specialist(
             - bootstrap_config_path (if provided), otherwise
             - <repo_root>/config-yaml/sample_modelcar_config.base.yaml
         - Reads deployability decisions from:
-            <repo_root>/info/decision_matrix.json
+            <repo_root>/info/deployment_matrix.json
             Each entry should look like:
             {
                 "model_name": "granite-3.1-8b-instruct",
@@ -99,18 +99,18 @@ def build_config_specialist(
         if not modelcar_path.exists():
             return "Error: model-car config not found."
 
-        decision_matrix_path = Path(repo_root, "info", "decision_matrix.json")
+        deployment_matrix_path = Path(repo_root, "info", "deployment_matrix.json")
 
         # ------------------------------------------------------------------ #
         # 2. Load decision matrix (deployable vs non-deployable)
         # ------------------------------------------------------------------ #
         deployable_names: set[str] = set()
-        if decision_matrix_path.exists():
+        if deployment_matrix_path.exists():
             try:
-                with open(decision_matrix_path, "r", encoding="utf-8") as f:
-                    decision_matrix = json.load(f)
-                if isinstance(decision_matrix, list):
-                    for entry in decision_matrix:
+                with open(deployment_matrix_path, "r", encoding="utf-8") as f:
+                    deployment_matrix = json.load(f)
+                if isinstance(deployment_matrix, list):
+                    for entry in deployment_matrix:
                         if (
                             isinstance(entry, dict)
                             and entry.get("deployable") is True
@@ -196,7 +196,7 @@ def build_config_specialist(
 
         if not new_model_list:
             return (
-                "No deployable models found based on decision_matrix.json. "
+                "No deployable models found based on the deployment matrix. "
                 "Generated config not written."
             )
 

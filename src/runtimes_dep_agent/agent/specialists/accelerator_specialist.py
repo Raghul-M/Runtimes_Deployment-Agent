@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Callable
 
 from langchain.agents import create_agent
@@ -75,7 +76,8 @@ def build_accelerator_specialist(
             }
         """
         gpu_status, gpu_provider = check_gpu_availability()
-        vllm_image = get_vllm_runtime_image_from_template(gpu_provider)
+        override_image = os.environ.get("VLLM_RUNTIME_IMAGE")
+        vllm_image = override_image or get_vllm_runtime_image_from_template(gpu_provider)
         
         metadata = {
             "gpu_available": gpu_status,
