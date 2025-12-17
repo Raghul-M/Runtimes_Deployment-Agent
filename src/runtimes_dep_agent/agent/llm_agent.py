@@ -16,6 +16,7 @@ from .specialists.config_specialist import build_config_specialist
 from .specialists.qa_specialist import build_qa_specialist
 from .specialists.accelerator_specialist import build_accelerator_specialist
 from .specialists.decision_specialist import build_decision_specialist
+from .specialists.report_specialist import build_report_specialist
 from ..config.model_config import load_llm_model_config, get_model_requirements
 from ..utils.path_utils import detect_repo_root
 
@@ -80,6 +81,7 @@ class LLMAgent:
             build_accelerator_specialist,
             build_decision_specialist,
             build_qa_specialist,
+            build_report_specialist,
         ]
         return [
             builder(
@@ -107,7 +109,8 @@ class LLMAgent:
             "- Accelerator Specialist: cluster accelerators, GPU/Spyre profiles, hardware details.\n"
             "- Decision Specialist: GO/NO-GO deployment decisions based on model requirements, accelerator capacity, "
             "  and serving arguments (e.g., tensor_parallel_size, max_model_len, executor backend).\n"
-            "- QA Specialist: runs the Opendatahub model validation test suite and reports results.\n\n"
+            "- QA Specialist: runs the Opendatahub model validation test suite and reports results.\n"
+            "- Report Specialist: generates a comprehensive deployment validation report summarizing all findings.\n\n"
 
             "A model-car configuration has already been processed by the host program. "
             "You can access its details only via your tools; never ask the user for YAML or file paths.\n"
