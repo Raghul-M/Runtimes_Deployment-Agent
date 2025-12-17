@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import os
 from langgraph.errors import GraphRecursionError
-
+from pathlib import Path
+from .utils.path_utils import detect_repo_root
 from runtimes_dep_agent.agent.llm_agent import LLMAgent
 
 
@@ -54,7 +55,11 @@ def main() -> None:
         output_text = agent.extract_final_text(result)
     except GraphRecursionError:
         output_text = "Error: maximum recursion depth reached."
-
+    
+    summary_path = Path(detect_repo_root(), "info", "supervisor_summary.txt")
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(summary_path, "w") as f:
+        f.write(output_text)
     print(output_text)
 
 

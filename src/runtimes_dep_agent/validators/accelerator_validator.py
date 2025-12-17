@@ -343,6 +343,15 @@ def get_amd_gpu_details():
                     gpu_model = "MI250"
                 elif "MI100" in instance_type:
                     gpu_model = "MI100"
+
+                # Map known AMD accelerators to their per-GPU VRAM (in GB)
+                amd_vram_lookup = {
+                    "MI300X": 192,
+                    "MI250": 128,
+                    "MI210": 64,
+                    "MI100": 32,
+                }
+                per_gpu_mem = amd_vram_lookup.get(gpu_model)
                 
                 # Convert memory to GB
                 memory_gb = _convert_to_gb(memory)
@@ -351,6 +360,8 @@ def get_amd_gpu_details():
                 gpu_info.append(f"• Cloud Provider: {cloud_provider}")
                 gpu_info.append(f"• Instance Type: {instance_type}")
                 gpu_info.append(f"• GPU Provider: AMD ({gpu_model})")
+                if per_gpu_mem is not None:
+                    gpu_info.append(f"• Per-GPU Memory: {per_gpu_mem} GB")
                 gpu_info.append(f"• Allocatable GPUs: {gpu_count}")
                 gpu_info.append(f"• Memory: {memory_gb} GB")
                 gpu_info.append(f"• Storage: {storage_gb} GB")

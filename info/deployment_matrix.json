@@ -1,13 +1,7 @@
-
 [
-  {
-    "model_name": "gpt-oss-120b",
-    "deployable": false,
-    "reason": "Insufficient GPU capacity. The model requires 264 GB of VRAM (~6 GPUs), but the cluster only provides 135 GB (3 GPUs)."
-  },
   {
     "model_name": "granite-3.1-8b-instruct",
     "deployable": true,
-    "reason": "Model fits on a single GPU. However, the configuration is missing serving_arguments, which must be added for a successful deployment. See the recommended OPTIMIZED_SERVING_ARGUMENTS_JSON."
+    "reason": "Deployable. Model VRAM (18 GB) fits on a single GPU (192.0 GB). The initial configuration was missing serving arguments, which has been corrected by recommending tensor-parallel-size=1 and other safe defaults suitable for the AMD hardware."
   }
 ]

@@ -1,29 +1,17 @@
-• Cloud Provider: AWS
-• Instance Type: g6e.xlarge
-• GPU Provider: NVIDIA
-• GPU Product: NVIDIA-L40S
-• Per-GPU Memory: 44.99 GB GB
-• Allocatable GPUs: 1
-• Node RAM: 32.0 GB
-• Node Storage: 114.3 GB
-• Node Name: ip-10-0-10-1.ec2.internal
+• Cloud Provider: Azure
+• Instance Type: Standard_ND96isr_MI300X_v5
+• GPU Provider: AMD (MI300X)
+• Per-GPU Memory: 192 GB
+• Allocatable GPUs: 8
+• Memory: 1954.5 GB
+• Storage: 493.0 GB
+• Node Name: ods-az-amd-01-pool-ps-vcdnq-gpu-westus-8l9bw
 
-• Cloud Provider: AWS
-• Instance Type: g6e.xlarge
-• GPU Provider: NVIDIA
-• GPU Product: NVIDIA-L40S
-• Per-GPU Memory: 44.99 GB GB
-• Allocatable GPUs: 1
-• Node RAM: 32.0 GB
-• Node Storage: 114.3 GB
-• Node Name: ip-10-0-14-179.ec2.internal
-
-• Cloud Provider: AWS
-• Instance Type: g6e.xlarge
-• GPU Provider: NVIDIA
-• GPU Product: NVIDIA-L40S
-• Per-GPU Memory: 44.99 GB GB
-• Allocatable GPUs: 1
-• Node RAM: 32.0 GB
-• Node Storage: 114.3 GB
-• Node Name: ip-10-0-4-45.ec2.internal
+• Cloud Provider: Azure
+• Instance Type: Standard_ND96isr_MI300X_v5
+• GPU Provider: AMD (MI300X)
+• Per-GPU Memory: 192 GB
+• Allocatable GPUs: 8
+• Memory: 1954.5 GB
+• Storage: 493.0 GB
+• Node Name: ods-az-amd-01-pool-ps-vcdnq-gpu-westus-twph7
